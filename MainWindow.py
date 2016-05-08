@@ -31,7 +31,7 @@ class MainWindow():
         self.master=master
         self.quitButton=tk.Button(self.master,text='Exit',command=self.funExit)
         self.quitButton.pack(side=tk.TOP)
-        self.clipButton=tk.Button(self.master,fg='blue',text='Click',command=self.funClip)
+        self.clipButton=tk.Button(self.master,fg='blue',text='Save clips',command=self.funClip)
         self.clipButton.pack(side=tk.TOP)
         self.master.geometry('%dx%d' % defaultSize)
         self.rectangles=[]
@@ -47,11 +47,14 @@ class MainWindow():
         self.picCanvas.bind('<Button-1>',lambda ev: self.funCanvasClick(ev,button=1))
         self.picCanvas.bind('<Button-2>',lambda ev: self.funCanvasClick(ev,button=2))
         self.picCanvas.bind('<Button-3>',lambda ev: self.funCanvasClick(ev,button=3))
+        self.picCanvas.bind('<Motion>',self.funCanvasMotion)
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
         self.cancelShow()
         if self.imageFiles:
-            self.loadPicture(1)
+            self.loadPicture(0)
         self.refreshTitle()
+        # button engine status
+        self.buttonStatus=0
 
     def refreshTitle(self):
         curTitle=self.baseTitle
@@ -98,37 +101,65 @@ class MainWindow():
         self.dir=nDir
         self.imageFiles=[fN for fN in os.listdir(nDir) if isPicture(fN)]
 
-    def refreshRecta(self):
-        if any([x is None for x in self.recta]):
-            print 'Abo', self.recta
-            if self.recid is not None:
-                self.picCanvas.delete(self.recid)
-            self.recid=None
-            return
-        else:
-            if self.recid is not None:
-                self.picCanvas.delete(self.recid)
-            self.recid=self.picCanvas.create_rectangle(tuple(coo*self.factor for coo in self.recta),width=4,outline='red')
-            print 'Rekta', self.recta
+    def refreshRectangles(self):
+        # handles all added rectangles and if present the editee one also
+        for qRectaPair in self.rectangles:
+            if qRectaPair[1] is None:
+                # must be added
+                qRectaPair[0].sort()
+                qRectaPair[1]=self.picCanvas.create_rectangle(qRectaPair[0].asTuple(),width=4,outline='red')
+        # do we have an editee rectangle?
+        if self.buttonStatus==1:
+            # yes, we do
+            if self.rectaID is not None:
+                self.picCanvas.delete(self.rectaID)
+            qRecta=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
+            qRecta.sort()
+            self.rectaID=self.picCanvas.create_rectangle(qRecta.asTuple(),width=4,outline='blue')
 
     def funExit(self):
         self.master.quit()
+
     def funClip(self):
-        if len(self.rectangles)>0:
-            print 'Saving... ',
-            nimg=self.image1.crop(self.recta)
-            nimg.save('CLIP.jpg','jpeg')
-            print 'Done.'
-        else:
+        for qInd,qRecta in enumerate(self.rectangles):
             if DEBUG:
-                print 'No rectangles'
+                print 'Saving %i/%i ...' % (qInd+1,len(self.rectangles))
+            print qRecta[0]
+            print self.factor
+            print qRecta[0].asTuple(1.0/self.factor)
+            clippedImage=self.loadedImage.crop(qRecta[0].asTuple(1.0/self.factor))
+            clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
+        print 'Done.'
 
     def funCanvasClick(self,event,button):
-        print 'Clicker[%i]: %i,%i' % (button,event.x,event.y)
-        self.recta[0]=int(event.x/self.factor)
-        self.recta[1]=int(event.y/self.factor)
-        self.refreshRecta()
-        # print 'ClickerR: %i,%i' % (event.x,event.y)
-        # self.recta[2]=int(event.x/self.factor)
-        # self.recta[3]=int(event.y/self.factor)
-        # self.refreshRecta()
+        if DEBUG:
+            print 'Clicker[%i]: %i,%i' % (button,event.x,event.y)
+        if button==1:
+            # left button
+            if self.buttonStatus==0:
+                # new rec starts
+                self.rectaCoordsStart=(event.x,event.y)
+                self.rectaCoordsEnd=self.rectaCoordsStart
+                self.rectaID=None
+                self.buttonStatus=1
+            elif self.buttonStatus==1:
+                # this is the second corner
+                self.picCanvas.delete(self.rectaID)
+                newRectangle=SelRectangle(self.rectaCoordsStart,(event.x,event.y))
+                newRectangle.sort()
+                self.rectangles.append([newRectangle,None])
+                self.buttonStatus=0
+        if button==3:
+            # right button
+            if self.buttonStatus==1:
+                # abort current rectangle
+                self.buttonStatus=0
+        self.refreshRectangles()
+
+    def funCanvasMotion(self,event):
+        if DEBUG:
+            print 'Motion: %i,%i' % (event.x,event.y)
+        if self.buttonStatus==1:
+            # adjust second corner
+            self.rectaCoordsEnd=(event.x,event.y)
+            self.refreshRectangles()
