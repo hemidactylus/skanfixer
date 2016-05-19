@@ -106,7 +106,7 @@ class MainWindow():
         # do we have an editee rectangle?
         if self.buttonStatus==1: # this must become more seriously handled. Not a clicked button!
             # Also check the not-quite-right rectangles positions
-                # yes, we do
+            # yes, we do
             if self.rectaID is not None:
                 self.picCanvas.delete(self.rectaID)
             if self.newRectangle is not None:
@@ -121,8 +121,7 @@ class MainWindow():
                 print 'Saving %i/%i ...' % (qInd+1,len(self.rectangles))
             print qRecta[0]
             print self.factor
-            print qRecta[0].asTuple(1.0/self.factor)
-            clippedImage=self.loadedImage.crop(qRecta[0].asTuple(1.0/self.factor))
+            clippedImage=self.loadedImage.crop(qRecta[0].asTuple(1.0))
             clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
         print 'Done.'
 
@@ -148,9 +147,29 @@ class MainWindow():
         if button==3:
             # right button
             if self.buttonStatus==1:
-                # abort current rectangle
+                # abort current rectangle creation
                 self.buttonStatus=0
+                if self.rectaID is not None:
+                    self.picCanvas.delete(self.rectaID)
+            else:
+                # if pointer over an already created rectangle, delete it
+                fndRecta=self.findNearRectangle(event.x/self.factor,event.y/self.factor)
+                #fndRecta=0
+                print 'HERE SHOULD FIND RECTA'
+                if fndRecta is not None:
+                    self.removeRectangle(fndRecta)
         self.refreshRectangles()
+
+    def findNearRectangle(self,cx,cy):
+        TOL=15 # scaled pixels
+        for qInd,qTuple in enumerate(self.rectangles):
+            if qTuple[0].hasOnEdge(cx,cy,TOL):
+                return qInd
+        return None
+
+    def removeRectangle(self,rectaIndex):
+        self.picCanvas.delete(self.rectangles[rectaIndex][1])
+        self.rectangles.pop(rectaIndex)
 
     def funCanvasMotion(self,event):
         if DEBUG:
