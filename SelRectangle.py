@@ -13,7 +13,8 @@ class SelRectangle():
         return tuple(int(x *counterFactor) for x in returnee)
 
     def sort(self):
-        ''' in-place shuffling of coordinates, ensures proper ordering
+        '''
+            in-place shuffling of coordinates, ensures proper ordering
         '''
         self.xs=[min(self.xs),max(self.xs)]
         self.ys=[min(self.ys),max(self.ys)]

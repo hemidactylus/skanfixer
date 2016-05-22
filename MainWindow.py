@@ -2,59 +2,65 @@
     with its GUI elements.
 '''
 
-defaultSize=(640,480)
-
-DEBUG=True
-
+# standard imports
 import Tkinter as tk
 from PIL import Image, ImageTk
 import os
 
+# project imports
 from SelRectangle import SelRectangle
+from misc_utils import isPicture, findRescaleFactor
 
-def isPicture(filename):
-    return filename[-3:].lower() == 'jpg' or filename[-4:].lower() == 'jpeg'
-
-def findRescaleFactor(imgSize,allowedSize):
-    mFactor=min(float(alwDim)/float(imgDim) for imgDim,alwDim in zip(imgSize,allowedSize))
-    # if mFactor>1:
-    #     mFactor=1
-    if DEBUG:
-        print 'mFactor=%.3f' % mFactor
-    return mFactor
+# TEMP - general settings
+defaultSize=(640,480)
+# Debug flag
+DEBUG=True
 
 class MainWindow():
 
-    def __init__(self,master,title):
-        self.master=master
+    def __init__(self,master,title=''):
+        '''
+            constructor requires a toplevel widget tk.Tk()
+            which is the root main-window to which to attach the
+            application.
+        '''
 
+        # Window layout
+        self.master=master
+        self.master.geometry('%dx%d' % defaultSize)
+        # controls are in a frame
         self.controlPanel=tk.Frame(self.master)
         self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
         self.quitButton.pack(side=tk.LEFT)
         self.clipButton=tk.Button(self.controlPanel,fg='blue',text='Save clips',command=self.funClip)
         self.clipButton.pack(side=tk.LEFT)
-        self.master.geometry('%dx%d' % defaultSize)
         self.controlPanel.pack(side=tk.TOP)
-        self.rectangles=[]
-        self.baseTitle=title
-        # handle pictures to load
-        self.cwd=os.getcwd()
-        self.refreshFiles(self.cwd)
-        if DEBUG:
-            print self.imageFiles
-        # show empty canvas in any case
-        self.canvasSize=defaultSize
+        # canvas the image is shown in
         self.picCanvas=tk.Canvas(self.master,width=defaultSize[0],height=defaultSize[1])
-        self.canvasImageHandle=None
-        self.rectaID=None
-        self.newRectangle=None
-        print 'THESE TWO MUST FORM A PAIR'
+        self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
+        # function bindings
         self.picCanvas.bind('<Button-1>',lambda ev: self.funCanvasClick(ev,button=1))
         self.picCanvas.bind('<Button-2>',lambda ev: self.funCanvasClick(ev,button=2))
         self.picCanvas.bind('<Button-3>',lambda ev: self.funCanvasClick(ev,button=3))
         self.picCanvas.bind('<Motion>',self.funCanvasMotion)
         self.picCanvas.bind('<Configure>',self.funCanvasConfigure)
-        self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
+
+        # members setup
+
+        self.baseTitle=title
+
+        # handle pictures to load
+        self.cwd=os.getcwd()
+        self.refreshFiles(self.cwd)
+        # 
+        self.rectangles=[]
+        if DEBUG:
+            print self.imageFiles
+        # show empty canvas in any case
+        self.canvasSize=defaultSize
+        self.canvasImageHandle=None
+        self.rectaID=None
+        self.newRectangle=None
         self.cancelShow()
         if self.imageFiles:
             self.loadPicture(0)
