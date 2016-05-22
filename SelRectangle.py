@@ -19,7 +19,7 @@ class SelRectangle():
         self.ys=[min(self.ys),max(self.ys)]
 
     def __str__(self):
-        return '! ' + str(self.asTuple()) + ' !'
+        return '! (%i,%i)-(%i,%i) !' % self.asTuple()
 
     def hasOnEdge(self,cx,cy,tol):
         '''
@@ -37,3 +37,14 @@ class SelRectangle():
             if any(abs(cx-somex)<=tol for somex in mxs):
                 return True
         return False
+
+    def hasOnCorner(self,cx,cy,tol):
+        '''
+            return a 2uple marking the corner (0/1,0/1)
+            if the rectangle has an edge close to the given point,
+            or None,None if nothing matches
+        '''
+        for cox,coy in [(a,b) for a in [0,1] for b in [0,1]]:
+            if abs(cx-self.xs[cox])<=tol and abs(cy-self.ys[coy])<=tol:
+                return (cox,coy)
+        return None

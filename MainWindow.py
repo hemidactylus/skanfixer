@@ -131,12 +131,25 @@ class MainWindow():
         if button==1:
             # left button
             if self.buttonStatus==0:
-                # new rec starts
-                self.rectaCoordsStart=(event.x/self.factor,event.y/self.factor)
-                self.rectaCoordsEnd=self.rectaCoordsStart
-                self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
-                self.rectaID=None
-                self.buttonStatus=1
+                # are we about to start moving a corner of a rectangle?
+                recIndex,recCorner=self.findNearCorner(event.x/self.factor,event.y/self.factor)
+                if recIndex is None:
+                    # new rec starts
+                    self.rectaCoordsStart=(event.x/self.factor,event.y/self.factor)
+                    self.rectaCoordsEnd=self.rectaCoordsStart
+                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
+                    self.rectaID=None
+                    self.buttonStatus=1
+                else:
+                    # enter editing of a rectangle
+                    self.buttonStatus=1
+                    delRecta=self.rectangles.pop(recIndex)
+                    self.picCanvas.delete(delRecta[1])
+                    self.rectaCoordsStart=(delRecta[0].xs[1-recCorner[0]],delRecta[0].ys[1-recCorner[1]])
+                    self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
+                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
+                    self.rectaID=None
+                    self.refreshRectangles()
             elif self.buttonStatus==1:
                 # this is the second corner
                 self.picCanvas.delete(self.rectaID)
@@ -154,8 +167,6 @@ class MainWindow():
             else:
                 # if pointer over an already created rectangle, delete it
                 fndRecta=self.findNearRectangle(event.x/self.factor,event.y/self.factor)
-                #fndRecta=0
-                print 'HERE SHOULD FIND RECTA'
                 if fndRecta is not None:
                     self.removeRectangle(fndRecta)
         self.refreshRectangles()
@@ -163,9 +174,18 @@ class MainWindow():
     def findNearRectangle(self,cx,cy):
         TOL=15 # scaled pixels
         for qInd,qTuple in enumerate(self.rectangles):
-            if qTuple[0].hasOnEdge(cx,cy,TOL):
+            if qTuple[0].hasOnEdge(cx,cy,TOL/self.factor):
                 return qInd
         return None
+
+    def findNearCorner(self,cx,cy):
+        # returns a 2uple index,corner - the last is a 2uple in (0,1)**2
+        TOL=15 # scaled pixels
+        for qInd,qTuple in enumerate(self.rectangles):
+            qCorner=qTuple[0].hasOnCorner(cx,cy,TOL/self.factor)
+            if qCorner is not None:
+                return qInd,qCorner
+        return None,None
 
     def removeRectangle(self,rectaIndex):
         self.picCanvas.delete(self.rectangles[rectaIndex][1])
