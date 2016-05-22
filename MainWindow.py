@@ -41,6 +41,16 @@ class MainWindow():
         self.quitButton.pack(side=tk.LEFT)
         self.clipButton=tk.Button(self.controlPanel,fg='blue',text='Save clips',command=self.funClip)
         self.clipButton.pack(side=tk.LEFT)
+
+        self.browseButtons=[
+                tk.Button(self.controlPanel,fg='green',text='-',command=lambda: self.funBrowse(0)),
+                tk.Button(self.controlPanel,fg='green',text='+',command=lambda: self.funBrowse(1)),
+            ]
+        for qBBut in self.browseButtons:
+            qBBut.pack(side=tk.LEFT)
+        self.picZoom=tk.Canvas(self.controlPanel,width=60,height=60)
+        self.picZoom.pack(side=tk.LEFT)
+
         self.controlPanel.pack(side=tk.TOP)
         # canvas the image is shown in
         self.picCanvas=tk.Canvas(self.master,width=defaultSize[0],height=defaultSize[1])
@@ -80,6 +90,12 @@ class MainWindow():
         else:
             self.refreshTitle()
 
+    def funBrowse(self,direction):
+        print 'Browse: %d.' % direction
+        if self.imageFiles:
+            self.loadPicture((self.loadedImageIndex+1)%len(self.imageFiles))
+
+
     def resetRectangles(self):
         while self.rectangles:
             self.rectangles.pop().unshow()
@@ -95,8 +111,8 @@ class MainWindow():
         curTitle=self.baseTitle
         imgName=''
         if self.cwd:
-            if self.loadedFileName:
-                imgName += ' - ' + os.path.join(self.cwd,self.loadedFileName)
+            if self.loadedImageIndex:
+                imgName += ' - ' + os.path.join(self.cwd,self.imageFiles[self.loadedFileIndex])
             else:
                 imgName += ' - ' + self.cwd
         if imgName:
@@ -113,17 +129,16 @@ class MainWindow():
         self.shownImage=None
         self.factor=None
 
-    def loadPicture(self,imgArg):
+    def loadPicture(self,imgIndex):
         '''
-            argument can be either a filename (string) or an index in images list
+            argument must be an integer index in images list
         '''
-        if isinstance(imgArg,int):
-            imgArg=self.imageFiles[imgArg]
+        imgName=self.imageFiles[imgIndex]
         # open pic, find rescale factor
         if DEBUG:
-            print 'Loading: %s' % imgArg,
-        self.loadedFileName=imgArg
-        self.loadedImage=Image.open(os.path.join(self.cwd,imgArg))
+            print 'Loading: %s' % imgName,
+        self.loadedImageIndex=imgIndex
+        self.loadedImage=Image.open(os.path.join(self.cwd,self.imageFiles[imgIndex]))
         self.refreshCanvas()
         self.refreshTitle()
         if DEBUG:
