@@ -11,6 +11,10 @@ import os
 from SelRectangle import SelRectangle
 from misc_utils import isPicture, findRescaleFactor, listImageFiles
 
+# edit modes
+emINERT=0
+emCREATING=1
+
 # TEMP - general settings
 defaultSize=(640,480)
 # Debug flag
@@ -24,6 +28,9 @@ class MainWindow():
             which is the root main-window to which to attach the
             application.
         '''
+
+        if DEBUG:
+            print 'Init.'
 
         # Window layout
         self.master=master
@@ -51,7 +58,7 @@ class MainWindow():
         self.canvasImageHandle=None
         self.rectangles=[]
         # button engine status
-        self.buttonStatus=0
+        self.editMode=emINERT
 
         # reset dir/file info
         self.refreshFiles(None)
@@ -92,6 +99,8 @@ class MainWindow():
                 imgName += ' - ' + os.path.join(self.cwd,self.loadedFileName)
             else:
                 imgName += ' - ' + self.cwd
+        if imgName:
+            curTitle += imgName
         if self.loadedImage:
             curTitle += ' [%i x %i]' % self.loadedImage.size
         self.master.title(curTitle)
@@ -111,10 +120,14 @@ class MainWindow():
         if isinstance(imgArg,int):
             imgArg=self.imageFiles[imgArg]
         # open pic, find rescale factor
+        if DEBUG:
+            print 'Loading: %s' % imgArg,
         self.loadedFileName=imgArg
         self.loadedImage=Image.open(os.path.join(self.cwd,imgArg))
         self.refreshCanvas()
         self.refreshTitle()
+        if DEBUG:
+            print 'Done'
 
     def refreshRectangles(self):
         # handles all added rectangles and if present the editee one also
@@ -122,7 +135,7 @@ class MainWindow():
             qRectaPair.show(self.factor)
 
         # do we have an editee rectangle?
-        if self.buttonStatus==1: # this must become more seriously handled. Not a clicked button!
+        if self.editMode==emCREATING:
             # Also check the not-quite-right rectangles positions
             # yes, we do
             if self.newRectangle:
@@ -148,7 +161,7 @@ class MainWindow():
             print 'Clicker[%i]: %i,%i' % (button,event.x,event.y)
         if button==1:
             # left button
-            if self.buttonStatus==0:
+            if self.editMode==emINERT:
                 # are we about to start moving a corner of a rectangle?
                 recIndex,recCorner=self.findNearCorner(event.x/self.factor,event.y/self.factor)
                 if recIndex is None:
@@ -156,31 +169,31 @@ class MainWindow():
                     self.rectaCoordsStart=(event.x/self.factor,event.y/self.factor)
                     self.rectaCoordsEnd=self.rectaCoordsStart
                     self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
-                    self.buttonStatus=1
+                    self.editMode=emCREATING
                 else:
                     # enter editing of a rectangle
-                    self.buttonStatus=1
+                    self.editMode=emCREATING
                     delRecta=self.rectangles.pop(recIndex)
                     delRecta.unshow()
                     self.rectaCoordsStart=(delRecta.xs[1-recCorner[0]],delRecta.ys[1-recCorner[1]])
                     self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
                     self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.refreshRectangles()
-            elif self.buttonStatus==1:
+            elif self.editMode==emCREATING:
                 # this is the second corner click: remove the edit rect and
                 # add it to the rectangles' list
                 self.newRectangle.unshow()
                 self.newRectangle.sort()
                 self.rectangles.append(self.newRectangle)
                 self.newRectangle=None
-                self.buttonStatus=0
+                self.editMode=emINERT
         if button==3:
             # right button
-            if self.buttonStatus==1:
+            if self.editMode==emCREATING:
                 # abort current rectangle creation
-                self.buttonStatus=0
-                if self.rectaID is not None:
-                    self.picCanvas.delete(self.rectaID)
+                self.editMode=emINERT
+                self.newRectangle.unshow()
+                self.newRectangle=None
             else:
                 # if pointer over an already created rectangle, delete it
                 fndRecta=self.findNearRectangle(event.x/self.factor,event.y/self.factor)
@@ -209,9 +222,9 @@ class MainWindow():
         self.rectangles.pop(rectaIndex)
 
     def funCanvasMotion(self,event):
-        if DEBUG:
-            print 'Motion: %i,%i' % (event.x,event.y)
-        if self.buttonStatus==1:
+        # if DEBUG:
+        #     print 'Motion: %i,%i' % (event.x,event.y)
+        if self.editMode==emCREATING:
             # adjust second corner
             self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
             self.newRectangle.unshow()
