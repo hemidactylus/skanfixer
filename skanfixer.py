@@ -8,7 +8,6 @@
 import Tkinter as tk
 
 # project imports
-from misc_utils import isPicture, findRescaleFactor
 from MainWindow import MainWindow
 
 # main body

@@ -9,7 +9,7 @@ import os
 
 # project imports
 from SelRectangle import SelRectangle
-from misc_utils import isPicture, findRescaleFactor
+from misc_utils import isPicture, findRescaleFactor, listImageFiles
 
 # TEMP - general settings
 defaultSize=(640,480)
@@ -45,33 +45,53 @@ class MainWindow():
         self.picCanvas.bind('<Motion>',self.funCanvasMotion)
         self.picCanvas.bind('<Configure>',self.funCanvasConfigure)
 
-        # members setup
-
+        # members setup, gui and appearance
         self.baseTitle=title
-
-        # handle pictures to load
-        self.cwd=os.getcwd()
-        self.refreshFiles(self.cwd)
-        # 
-        self.rectangles=[]
-        if DEBUG:
-            print self.imageFiles
-        # show empty canvas in any case
         self.canvasSize=defaultSize
         self.canvasImageHandle=None
-        self.rectaID=None
-        self.newRectangle=None
-        self.cancelShow()
-        if self.imageFiles:
-            self.loadPicture(0)
-        self.refreshTitle()
+        self.rectangles=[]
         # button engine status
         self.buttonStatus=0
 
+        # reset dir/file info
+        self.refreshFiles(None)
+        # reset shown image
+        self.cancelShow()
+        # reset selections
+        self.resetRectangles()
+
+        if DEBUG:
+            print self.imageFiles
+        # show empty canvas in any case
+
+        #self.rectaID=None
+        self.newRectangle=None
+
+        # auto-load first image, if any
+        if self.imageFiles:
+            self.loadPicture(0)
+        else:
+            self.refreshTitle()
+
+    def resetRectangles(self):
+        while self.rectangles:
+            self.rectangles.pop().unshow()
+
+    def refreshFiles(self,nDir):
+        '''
+            refresh current dir and reload list of images
+        '''
+        self.cwd=nDir if nDir is not None else os.getcwd()
+        self.imageFiles=listImageFiles(self.cwd)
+
     def refreshTitle(self):
         curTitle=self.baseTitle
-        if self.loadedFileName:
-            curTitle += ' - ' + self.loadedFileName
+        imgName=''
+        if self.cwd:
+            if self.loadedFileName:
+                imgName += ' - ' + os.path.join(self.cwd,self.loadedFileName)
+            else:
+                imgName += ' - ' + self.cwd
         if self.loadedImage:
             curTitle += ' [%i x %i]' % self.loadedImage.size
         self.master.title(curTitle)
@@ -94,29 +114,21 @@ class MainWindow():
         self.loadedFileName=imgArg
         self.loadedImage=Image.open(os.path.join(self.cwd,imgArg))
         self.refreshCanvas()
-
-    def refreshFiles(self,nDir):
-        '''
-            refresh current dir and reload list of images
-        '''
-        self.dir=nDir
-        self.imageFiles=[fN for fN in os.listdir(nDir) if isPicture(fN)]
+        self.refreshTitle()
 
     def refreshRectangles(self):
         # handles all added rectangles and if present the editee one also
         for qRectaPair in self.rectangles:
-            if qRectaPair[1] is None:
-                # must be added
-                qRectaPair[0].sort()
-                qRectaPair[1]=self.picCanvas.create_rectangle(qRectaPair[0].asTuple(self.factor),width=4,outline='red')
+            qRectaPair.show(self.factor)
+
         # do we have an editee rectangle?
         if self.buttonStatus==1: # this must become more seriously handled. Not a clicked button!
             # Also check the not-quite-right rectangles positions
             # yes, we do
-            if self.rectaID is not None:
-                self.picCanvas.delete(self.rectaID)
+            if self.newRectangle:
+                self.newRectangle.unshow()
             if self.newRectangle is not None:
-                self.rectaID=self.picCanvas.create_rectangle(self.newRectangle.asTuple(self.factor),width=4,outline='blue')
+                self.newRectangle.show(self.factor,color='blue')
 
     def funExit(self):
         self.master.quit()
@@ -125,9 +137,9 @@ class MainWindow():
         for qInd,qRecta in enumerate(self.rectangles):
             if DEBUG:
                 print 'Saving %i/%i ...' % (qInd+1,len(self.rectangles))
-            print qRecta[0]
+            print qRecta
             print self.factor
-            clippedImage=self.loadedImage.crop(qRecta[0].asTuple(1.0))
+            clippedImage=self.loadedImage.crop(qRecta.asTuple(1.0))
             clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
         print 'Done.'
 
@@ -143,24 +155,23 @@ class MainWindow():
                     # new rec starts
                     self.rectaCoordsStart=(event.x/self.factor,event.y/self.factor)
                     self.rectaCoordsEnd=self.rectaCoordsStart
-                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
-                    self.rectaID=None
+                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.buttonStatus=1
                 else:
                     # enter editing of a rectangle
                     self.buttonStatus=1
                     delRecta=self.rectangles.pop(recIndex)
-                    self.picCanvas.delete(delRecta[1])
-                    self.rectaCoordsStart=(delRecta[0].xs[1-recCorner[0]],delRecta[0].ys[1-recCorner[1]])
+                    delRecta.unshow()
+                    self.rectaCoordsStart=(delRecta.xs[1-recCorner[0]],delRecta.ys[1-recCorner[1]])
                     self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
-                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
-                    self.rectaID=None
+                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.refreshRectangles()
             elif self.buttonStatus==1:
-                # this is the second corner
-                self.picCanvas.delete(self.rectaID)
+                # this is the second corner click: remove the edit rect and
+                # add it to the rectangles' list
+                self.newRectangle.unshow()
                 self.newRectangle.sort()
-                self.rectangles.append([self.newRectangle,None])
+                self.rectangles.append(self.newRectangle)
                 self.newRectangle=None
                 self.buttonStatus=0
         if button==3:
@@ -180,7 +191,7 @@ class MainWindow():
     def findNearRectangle(self,cx,cy):
         TOL=15 # scaled pixels
         for qInd,qTuple in enumerate(self.rectangles):
-            if qTuple[0].hasOnEdge(cx,cy,TOL/self.factor):
+            if qTuple.hasOnEdge(cx,cy,TOL/self.factor):
                 return qInd
         return None
 
@@ -188,13 +199,13 @@ class MainWindow():
         # returns a 2uple index,corner - the last is a 2uple in (0,1)**2
         TOL=15 # scaled pixels
         for qInd,qTuple in enumerate(self.rectangles):
-            qCorner=qTuple[0].hasOnCorner(cx,cy,TOL/self.factor)
+            qCorner=qTuple.hasOnCorner(cx,cy,TOL/self.factor)
             if qCorner is not None:
                 return qInd,qCorner
         return None,None
 
     def removeRectangle(self,rectaIndex):
-        self.picCanvas.delete(self.rectangles[rectaIndex][1])
+        self.rectangles[rectaIndex].unshow()
         self.rectangles.pop(rectaIndex)
 
     def funCanvasMotion(self,event):
@@ -203,8 +214,10 @@ class MainWindow():
         if self.buttonStatus==1:
             # adjust second corner
             self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
-            self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
-            self.refreshRectangles()
+            self.newRectangle.unshow()
+            self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
+            self.newRectangle.show(self.factor,color='blue')
+            #self.refreshRectangles()
 
     def funCanvasConfigure(self,event):
         # resize of window, hence of canvas
@@ -225,13 +238,14 @@ class MainWindow():
             # make the tour through PIL to show image and so on
             self.tkShownImage=ImageTk.PhotoImage(self.shownImage)
             self.canvasImageHandle=self.picCanvas.create_image(0,0,anchor=tk.NW,image=self.tkShownImage)
-            # must redraw all rectangles as well
-            for qRectaPair in self.rectangles:
-                if qRectaPair[1] is not None:
-                    self.picCanvas.delete(qRectaPair[1])
-                    qRectaPair[1]=self.picCanvas.create_rectangle(qRectaPair[0].asTuple(self.factor),width=4,outline='red')
-            if self.rectaID is not None:
-                self.picCanvas.delete(self.rectaID)
-            if self.newRectangle is not None:
-                # these lines duplicate refresh rectangles above!
-                self.rectaID=self.picCanvas.create_rectangle(self.newRectangle.asTuple(self.factor),width=4,outline='blue')
+            self.refreshRectangles()
+            # # must redraw all rectangles as well
+            # for qRectaPair in self.rectangles:
+            #     if qRectaPair[1] is not None:
+            #         self.picCanvas.delete(qRectaPair[1])
+            #         qRectaPair[1]=self.picCanvas.create_rectangle(qRectaPair[0].asTuple(self.factor),width=4,color='red')
+            # if self.rectaID is not None:
+            #     self.picCanvas.delete(self.rectaID)
+            # if self.newRectangle is not None:
+            #     # these lines duplicate refresh rectangles above!
+            #     self.rectaID=self.picCanvas.create_rectangle(self.newRectangle.asTuple(self.factor),width=4,color='blue')

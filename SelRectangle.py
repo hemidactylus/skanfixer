@@ -4,9 +4,20 @@
 
 class SelRectangle():
 
-    def __init__(self,corner1,corner2):
+    def __init__(self,corner1,corner2,picCanvas):
         self.xs=[corner1[0],corner2[0]]
         self.ys=[corner1[1],corner2[1]]
+        self.canvas=picCanvas
+        self.rectaID=None
+
+    def unshow(self):
+        if self.rectaID:
+            self.canvas.delete(self.rectaID)
+
+    def show(self,factor=1.0,width=4,color='red'):
+        self.unshow()
+        self.sort()
+        self.rectaID=self.canvas.create_rectangle(self.asTuple(factor),width=width,outline=color)
 
     def asTuple(self,counterFactor=1.0):
         returnee = (self.xs[0],self.ys[0],self.xs[1],self.ys[1])

@@ -2,6 +2,9 @@
     miscUtils : miscellaneous utilities for skanfixer
 '''
 
+# standard imports
+import os
+
 DEBUG=True
 
 def isPicture(filename):
@@ -21,3 +24,9 @@ def findRescaleFactor(imgSize,allowedSize,allowZoom=True):
     if DEBUG:
         print 'mFactor=%.3f' % mFactor
     return mFactor
+
+def listImageFiles(nDir):
+    '''
+        Builds a list of image files for a given directory
+    '''
+    return [fN for fN in os.listdir(nDir) if isPicture(fN)]
