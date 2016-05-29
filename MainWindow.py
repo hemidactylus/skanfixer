@@ -48,8 +48,6 @@ class MainWindow():
             ]
         for qBBut in self.browseButtons:
             qBBut.pack(side=tk.LEFT)
-        self.picZoom=tk.Canvas(self.controlPanel,width=60,height=60)
-        self.picZoom.pack(side=tk.LEFT)
 
         self.controlPanel.pack(side=tk.TOP)
         # canvas the image is shown in
@@ -93,7 +91,7 @@ class MainWindow():
     def funBrowse(self,direction):
         print 'Browse: %d.' % direction
         if self.imageFiles:
-            self.loadPicture((self.loadedImageIndex+1)%len(self.imageFiles))
+            self.loadPicture((self.loadedImageIndex+[-1,+1][direction])%len(self.imageFiles))
 
 
     def resetRectangles(self):
@@ -109,16 +107,15 @@ class MainWindow():
 
     def refreshTitle(self):
         curTitle=self.baseTitle
-        imgName=''
-        if self.cwd:
-            if self.loadedImageIndex:
-                imgName += ' - ' + os.path.join(self.cwd,self.imageFiles[self.loadedFileIndex])
-            else:
-                imgName += ' - ' + self.cwd
-        if imgName:
-            curTitle += imgName
+        # if self.cwd:
+        #     if self.loadedImageIndex:
+        #         self.imgName += ' - ' + os.path.join(self.cwd,self.imageFiles[self.loadedFileIndex])
+        #     else:
+        #         self.imgName += ' - ' + self.cwd
+        if self.imgName:
+            curTitle += ' - ' + self.imgName
         if self.loadedImage:
-            curTitle += ' [%i x %i]' % self.loadedImage.size
+            curTitle += ' - ' + '[%i x %i]' % self.loadedImage.size
         self.master.title(curTitle)
 
     def cancelShow(self):
@@ -133,10 +130,10 @@ class MainWindow():
         '''
             argument must be an integer index in images list
         '''
-        imgName=self.imageFiles[imgIndex]
+        self.imgName=self.imageFiles[imgIndex]
         # open pic, find rescale factor
         if DEBUG:
-            print 'Loading: %s' % imgName,
+            print 'Loading: %s' % self.imgName,
         self.loadedImageIndex=imgIndex
         self.loadedImage=Image.open(os.path.join(self.cwd,self.imageFiles[imgIndex]))
         self.refreshCanvas()
@@ -267,13 +264,3 @@ class MainWindow():
             self.tkShownImage=ImageTk.PhotoImage(self.shownImage)
             self.canvasImageHandle=self.picCanvas.create_image(0,0,anchor=tk.NW,image=self.tkShownImage)
             self.refreshRectangles()
-            # # must redraw all rectangles as well
-            # for qRectaPair in self.rectangles:
-            #     if qRectaPair[1] is not None:
-            #         self.picCanvas.delete(qRectaPair[1])
-            #         qRectaPair[1]=self.picCanvas.create_rectangle(qRectaPair[0].asTuple(self.factor),width=4,color='red')
-            # if self.rectaID is not None:
-            #     self.picCanvas.delete(self.rectaID)
-            # if self.newRectangle is not None:
-            #     # these lines duplicate refresh rectangles above!
-            #     self.rectaID=self.picCanvas.create_rectangle(self.newRectangle.asTuple(self.factor),width=4,color='blue')
