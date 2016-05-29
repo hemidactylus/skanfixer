@@ -93,7 +93,6 @@ class MainWindow():
         if self.imageFiles:
             self.loadPicture((self.loadedImageIndex+[-1,+1][direction])%len(self.imageFiles))
 
-
     def resetRectangles(self):
         while self.rectangles:
             self.rectangles.pop().unshow()
