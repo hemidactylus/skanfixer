@@ -91,6 +91,7 @@ class MainWindow():
     def funBrowse(self,direction):
         print 'Browse: %d.' % direction
         if self.imageFiles:
+            self.resetRectangles()
             self.loadPicture((self.loadedImageIndex+[-1,+1][direction])%len(self.imageFiles))
 
     def resetRectangles(self):
