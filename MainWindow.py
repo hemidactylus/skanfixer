@@ -9,14 +9,19 @@ import os
 
 # project imports
 from SelRectangle import SelRectangle
-from misc_utils import isPicture, findRescaleFactor, listImageFiles
+from misc_utils import  isPicture, findRescaleFactor, listImageFiles, centreAroundPoint
 
 # edit modes
 emINERT=0
 emCREATING=1
+# edit zoom overlay status
+ezoNONE=0
+ezoSHOWN=1
 
 # TEMP - general settings
 defaultSize=(640,480)
+picZoomSize=(160,160)
+picZoomFactor=2
 # Debug flag
 DEBUG=True
 
@@ -60,6 +65,9 @@ class MainWindow():
         self.picCanvas.bind('<Motion>',self.funCanvasMotion)
         self.picCanvas.bind('<Configure>',self.funCanvasConfigure)
 
+        # mouse position
+        self.pointerPos=(None,None)
+
         # members setup, gui and appearance
         self.baseTitle=title
         self.canvasSize=defaultSize
@@ -67,6 +75,7 @@ class MainWindow():
         self.rectangles=[]
         # button engine status
         self.editMode=emINERT
+        self.editZoomOverlay=ezoNONE
 
         # reset dir/file info
         self.refreshFiles(None)
@@ -74,6 +83,9 @@ class MainWindow():
         self.cancelShow()
         # reset selections
         self.resetRectangles()
+
+        # zoom overlay part
+        self.picZoom=None
 
         if DEBUG:
             print self.imageFiles
@@ -148,6 +160,7 @@ class MainWindow():
 
         # do we have an editee rectangle?
         if self.editMode==emCREATING:
+            print 'SHOULD CHECK EZO'
             # Also check the not-quite-right rectangles positions
             # yes, we do
             if self.newRectangle:
@@ -182,9 +195,12 @@ class MainWindow():
                     self.rectaCoordsEnd=self.rectaCoordsStart
                     self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.editMode=emCREATING
+                    self.editZoomOverlay=ezoNONE
                 else:
                     # enter editing of a rectangle
                     self.editMode=emCREATING
+                    self.editZoomOverlay=ezoSHOWN
+                    self.createZoomOverlay()
                     delRecta=self.rectangles.pop(recIndex)
                     delRecta.unshow()
                     self.rectaCoordsStart=(delRecta.xs[1-recCorner[0]],delRecta.ys[1-recCorner[1]])
@@ -192,6 +208,8 @@ class MainWindow():
                     self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.refreshRectangles()
             elif self.editMode==emCREATING:
+                if self.editZoomOverlay==ezoSHOWN:
+                    self.deleteZoomOverlay()
                 # this is the second corner click: remove the edit rect and
                 # add it to the rectangles' list
                 self.newRectangle.unshow()
@@ -199,11 +217,15 @@ class MainWindow():
                 self.rectangles.append(self.newRectangle)
                 self.newRectangle=None
                 self.editMode=emINERT
+                self.editZoomOverlay=ezoNONE
         if button==3:
             # right button
             if self.editMode==emCREATING:
+                if self.editZoomOverlay==ezoSHOWN:
+                    self.deleteZoomOverlay()
                 # abort current rectangle creation
                 self.editMode=emINERT
+                self.editZoomOverlay=ezoNONE
                 self.newRectangle.unshow()
                 self.newRectangle=None
             else:
@@ -236,13 +258,15 @@ class MainWindow():
     def funCanvasMotion(self,event):
         # if DEBUG:
         #     print 'Motion: %i,%i' % (event.x,event.y)
+        self.pointerPos=(event.x,event.y)
         if self.editMode==emCREATING:
+            if self.editZoomOverlay==ezoSHOWN:
+                print 'HANDLE ZOOM OVERLAY'
             # adjust second corner
             self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
             self.newRectangle.unshow()
             self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
             self.newRectangle.show(self.factor,color='blue')
-            #self.refreshRectangles()
 
     def funCanvasConfigure(self,event):
         # resize of window, hence of canvas
@@ -264,3 +288,29 @@ class MainWindow():
             self.tkShownImage=ImageTk.PhotoImage(self.shownImage)
             self.canvasImageHandle=self.picCanvas.create_image(0,0,anchor=tk.NW,image=self.tkShownImage)
             self.refreshRectangles()
+
+    def createZoomOverlay(self):
+        '''
+            Creates the zoom patch around the mouse cursor
+        '''
+        print 'CREATE ZOOM OVERLAY'
+        self.deleteZoomOverlay()
+        self.picZoom=tk.Canvas(self.picCanvas,width=picZoomSize[0],height=picZoomSize[1])
+        cornX,cornY=centreAroundPoint(self.pointerPos,picZoomSize)
+
+# self.tkShownImage=ImageTk.PhotoImage(self.shownImage)
+# self.canvasImageHandle=self.picCanvas.create_image(0,0,anchor=tk.NW,image=self.tkShownImage)
+
+        # perform zoom
+        clipRegionStart=centreAroundPoint((poCoo/self.factor for poCoo in self.pointerPos),
+            (zoCoo/picZoomFactor for zoCoo in picZoomSize))
+        clipRegionEnd=(coo+(clipSize/picZoomFactor) for coo,clipSize in zip(clipRegionStart,picZoomSize))
+        clipCoords=[int(coo) for qlist in [clipRegionStart,clipRegionEnd] for coo in qlist]
+        print clipCoords
+        clippedImage=self.loadedImage.crop(clipCoords)
+        self.picZoom.create_image(0,0,anchor=tk.CENTER,image=ImageTk.PhotoImage(clippedImage))
+        self.picZoom.place(x=cornX,y=cornY)
+
+    def deleteZoomOverlay(self):
+        if self.picZoom is not None:
+            self.picZoom.destroy()

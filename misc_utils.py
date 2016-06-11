@@ -30,3 +30,11 @@ def listImageFiles(nDir):
         Builds a list of image files for a given directory
     '''
     return [fN for fN in os.listdir(nDir) if isPicture(fN)]
+
+def centreAroundPoint(pos,size):
+    '''
+        given a (x,y) position and a (dx,dy) size, returns
+        the coordinate of the top-left corner were the
+        size to be centred at the position
+    '''
+    return tuple(p-s/2 for p,s in zip(pos,size))
