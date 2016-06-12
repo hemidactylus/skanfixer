@@ -20,8 +20,8 @@ ezoSHOWN=1
 
 # TEMP - general settings
 defaultSize=(640,480)
-picZoomSize=(160,160)
-picZoomFactor=2
+picZoomSize=(300,300)
+picZoomFactor=3
 # Debug flag
 DEBUG=True
 
@@ -76,6 +76,7 @@ class MainWindow():
         # button engine status
         self.editMode=emINERT
         self.editZoomOverlay=ezoNONE
+        self.zoomImage=None
 
         # reset dir/file info
         self.refreshFiles(None)
@@ -297,18 +298,14 @@ class MainWindow():
         self.deleteZoomOverlay()
         self.picZoom=tk.Canvas(self.picCanvas,width=picZoomSize[0],height=picZoomSize[1])
         cornX,cornY=centreAroundPoint(self.pointerPos,picZoomSize)
-
-# self.tkShownImage=ImageTk.PhotoImage(self.shownImage)
-# self.canvasImageHandle=self.picCanvas.create_image(0,0,anchor=tk.NW,image=self.tkShownImage)
-
         # perform zoom
         clipRegionStart=centreAroundPoint((poCoo/self.factor for poCoo in self.pointerPos),
             (zoCoo/picZoomFactor for zoCoo in picZoomSize))
         clipRegionEnd=(coo+(clipSize/picZoomFactor) for coo,clipSize in zip(clipRegionStart,picZoomSize))
         clipCoords=[int(coo) for qlist in [clipRegionStart,clipRegionEnd] for coo in qlist]
         print clipCoords
-        clippedImage=self.loadedImage.crop(clipCoords)
-        self.picZoom.create_image(0,0,anchor=tk.CENTER,image=ImageTk.PhotoImage(clippedImage))
+        self.zoomImage=ImageTk.PhotoImage(self.loadedImage.crop(clipCoords).resize(picZoomSize,Image.NEAREST))
+        self.picZoom.create_image(0,0,anchor=tk.NW,image=self.zoomImage)
         self.picZoom.place(x=cornX,y=cornY)
 
     def deleteZoomOverlay(self):
