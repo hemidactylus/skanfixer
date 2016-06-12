@@ -38,3 +38,8 @@ def centreAroundPoint(pos,size):
         size to be centred at the position
     '''
     return tuple(p-s/2 for p,s in zip(pos,size))
+
+def mapCoordinatesFromZoom(coordsOnZoom,zoomWindowCenter, picZoomShape, zFactor, showFactor):
+    '''
+    todo: from a coordinate on the zoom window to coordinates in the original picture!
+    '''

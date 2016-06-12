@@ -182,7 +182,12 @@ class MainWindow():
             clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
         print 'Done.'
 
-    def funCanvasClick(self,event,button):
+    def funCanvasClick(self,event,button,zoom=False):
+        if zoom:
+            print 'ZoomClicker[%i]: %i,%i' % (button,event.x,event.y)
+            event.x,event.y=mapCoordinatesFromZoom((event.x,event.y),self.zoomCenterPosition,
+                picZoomSize, picZoomFactor, self.factor)
+                TO DO
         if DEBUG:
             print 'Clicker[%i]: %i,%i' % (button,event.x,event.y)
         if button==1:
@@ -256,7 +261,9 @@ class MainWindow():
         self.rectangles[rectaIndex].unshow()
         self.rectangles.pop(rectaIndex)
 
-    def funCanvasMotion(self,event):
+    def funCanvasMotion(self,event,zoom=False):
+        if zoom:
+             print 'ZoomMotion: %i,%i' % (event.x,event.y)
         # if DEBUG:
         #     print 'Motion: %i,%i' % (event.x,event.y)
         self.pointerPos=(event.x,event.y)
@@ -297,7 +304,15 @@ class MainWindow():
         print 'CREATE ZOOM OVERLAY'
         self.deleteZoomOverlay()
         self.picZoom=tk.Canvas(self.picCanvas,width=picZoomSize[0],height=picZoomSize[1])
+        # bind events to zoom frame
+        self.picZoom.bind('<Button-1>',lambda ev: self.funCanvasClick(ev,button=1,zoom=True))
+        self.picZoom.bind('<Button-2>',lambda ev: self.funCanvasClick(ev,button=2,zoom=True))
+        self.picZoom.bind('<Button-3>',lambda ev: self.funCanvasClick(ev,button=3,zoom=True))
+        self.picZoom.bind('<Motion>',lambda ev: self.funCanvasMotion(ev,zoom=True))
+        #
         cornX,cornY=centreAroundPoint(self.pointerPos,picZoomSize)
+        # store position of zoom window
+        self.zoomCenterPosition=self.pointerPos
         # perform zoom
         clipRegionStart=centreAroundPoint((poCoo/self.factor for poCoo in self.pointerPos),
             (zoCoo/picZoomFactor for zoCoo in picZoomSize))
