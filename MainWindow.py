@@ -9,7 +9,11 @@ import os
 
 # project imports
 from SelRectangle import SelRectangle
-from misc_utils import  isPicture, findRescaleFactor, listImageFiles, centreAroundPoint
+from misc_utils import (isPicture,
+                        findRescaleFactor,
+                        listImageFiles,
+                        centreAroundPoint,
+                        mapCoordinatesFromZoom)
 
 # edit modes
 emINERT=0
@@ -183,21 +187,23 @@ class MainWindow():
         print 'Done.'
 
     def funCanvasClick(self,event,button,zoom=False):
+        ceventx,ceventy=event.x,event.y
         if zoom:
-            print 'ZoomClicker[%i]: %i,%i' % (button,event.x,event.y)
-            event.x,event.y=mapCoordinatesFromZoom((event.x,event.y),self.zoomCenterPosition,
-                picZoomSize, picZoomFactor, self.factor)
-                TO DO
+            ceventx,ceventy=mapCoordinatesFromZoom((event.x,event.y),self.zoomCenterPosition,
+                picZoomSize, picZoomFactor)
+            ceventx,ceventy=(x*self.factor for x in [ceventx,ceventy])
+            # REFACTOR HERE THE WHOLE THING TO ALWAYS WORK IN PIC UNITS
+            print 'ZoomClicker[%i]: %i,%i -> %i,%i' % (button,event.x,event.y,ceventx,ceventy)
         if DEBUG:
-            print 'Clicker[%i]: %i,%i' % (button,event.x,event.y)
+            print 'Clicker[%i]: %i,%i' % (button,ceventx,ceventy)
         if button==1:
             # left button
             if self.editMode==emINERT:
                 # are we about to start moving a corner of a rectangle?
-                recIndex,recCorner=self.findNearCorner(event.x/self.factor,event.y/self.factor)
+                recIndex,recCorner=self.findNearCorner(ceventx/self.factor,ceventy/self.factor)
                 if recIndex is None:
                     # new rec starts
-                    self.rectaCoordsStart=(event.x/self.factor,event.y/self.factor)
+                    self.rectaCoordsStart=(ceventx/self.factor,ceventy/self.factor)
                     self.rectaCoordsEnd=self.rectaCoordsStart
                     self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.editMode=emCREATING
@@ -210,7 +216,7 @@ class MainWindow():
                     delRecta=self.rectangles.pop(recIndex)
                     delRecta.unshow()
                     self.rectaCoordsStart=(delRecta.xs[1-recCorner[0]],delRecta.ys[1-recCorner[1]])
-                    self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
+                    self.rectaCoordsEnd=(ceventx/self.factor,ceventy/self.factor)
                     self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
                     self.refreshRectangles()
             elif self.editMode==emCREATING:
@@ -236,7 +242,7 @@ class MainWindow():
                 self.newRectangle=None
             else:
                 # if pointer over an already created rectangle, delete it
-                fndRecta=self.findNearRectangle(event.x/self.factor,event.y/self.factor)
+                fndRecta=self.findNearRectangle(ceventx/self.factor,ceventy/self.factor)
                 if fndRecta is not None:
                     self.removeRectangle(fndRecta)
         self.refreshRectangles()
@@ -262,16 +268,22 @@ class MainWindow():
         self.rectangles.pop(rectaIndex)
 
     def funCanvasMotion(self,event,zoom=False):
+        ceventx,ceventy=event.x,event.y
         if zoom:
-             print 'ZoomMotion: %i,%i' % (event.x,event.y)
+            ceventx,ceventy=mapCoordinatesFromZoom((event.x,event.y),self.zoomCenterPosition,
+                picZoomSize, picZoomFactor)
+            # REFACTOR HERE
+            ceventx,ceventy=(x*self.factor for x in [ceventx,ceventy])
+            print 'ZoomMotion: %i,%i -> %i,%i' % (event.x,event.y,ceventx,ceventy)
         # if DEBUG:
         #     print 'Motion: %i,%i' % (event.x,event.y)
-        self.pointerPos=(event.x,event.y)
+        self.pointerPos=(ceventx,ceventy)
+        self.pointerImageSize=(ceventx/self.factor,ceventy/self.factor)
         if self.editMode==emCREATING:
             if self.editZoomOverlay==ezoSHOWN:
                 print 'HANDLE ZOOM OVERLAY'
             # adjust second corner
-            self.rectaCoordsEnd=(event.x/self.factor,event.y/self.factor)
+            self.rectaCoordsEnd=self.pointerImageSize
             self.newRectangle.unshow()
             self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
             self.newRectangle.show(self.factor,color='blue')
@@ -312,9 +324,9 @@ class MainWindow():
         #
         cornX,cornY=centreAroundPoint(self.pointerPos,picZoomSize)
         # store position of zoom window
-        self.zoomCenterPosition=self.pointerPos
+        self.zoomCenterPosition=self.pointerImageSize
         # perform zoom
-        clipRegionStart=centreAroundPoint((poCoo/self.factor for poCoo in self.pointerPos),
+        clipRegionStart=centreAroundPoint(self.pointerImageSize,
             (zoCoo/picZoomFactor for zoCoo in picZoomSize))
         clipRegionEnd=(coo+(clipSize/picZoomFactor) for coo,clipSize in zip(clipRegionStart,picZoomSize))
         clipCoords=[int(coo) for qlist in [clipRegionStart,clipRegionEnd] for coo in qlist]

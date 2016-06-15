@@ -39,7 +39,12 @@ def centreAroundPoint(pos,size):
     '''
     return tuple(p-s/2 for p,s in zip(pos,size))
 
-def mapCoordinatesFromZoom(coordsOnZoom,zoomWindowCenter, picZoomShape, zFactor, showFactor):
+def mapCoordinatesFromZoom(coordsOnZoom,zoomWindowCenter, picZoomShape, zFactor):
     '''
-    todo: from a coordinate on the zoom window to coordinates in the original picture!
+        Maps an event in the zoom window onto a coordinate on the real picture
+        coordsOnZoom are the (in screen units) coords of a point in the zoom window
+        zoomWindowCenter is the anchor of the zoom-center in real-image units
+        picZoomShape is the shape of the zoom window (in screen pixels)
+        zFactor is the zoom factor i.e. how many screen pixels a real-image pixel occupies
     '''
+    return tuple([int(((coz-pzs/2)/zFactor)+zwc) for coz,zwc,pzs in zip(coordsOnZoom,zoomWindowCenter,picZoomShape)])
