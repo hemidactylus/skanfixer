@@ -1,0 +1,2 @@
+refactor click/move events (and the whole structure) so that it mainly works on the real-pic coords
+and uses the scaled-down ones only in hindsight.

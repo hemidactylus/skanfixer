@@ -113,7 +113,7 @@ class MainWindow():
 
     def resetRectangles(self):
         while self.rectangles:
-            self.rectangles.pop().unshow()
+            self.rectangles.pop().unshow(self.picCanvas)
 
     def refreshFiles(self,nDir):
         '''
@@ -161,7 +161,7 @@ class MainWindow():
     def refreshRectangles(self):
         # handles all added rectangles and if present the editee one also
         for qRectaPair in self.rectangles:
-            qRectaPair.show(self.factor)
+            qRectaPair.show(self.picCanvas,self.factor)
 
         # do we have an editee rectangle?
         if self.editMode==emCREATING:
@@ -169,9 +169,9 @@ class MainWindow():
             # Also check the not-quite-right rectangles positions
             # yes, we do
             if self.newRectangle:
-                self.newRectangle.unshow()
+                self.newRectangle.unshow(self.picCanvas)
             if self.newRectangle is not None:
-                self.newRectangle.show(self.factor,color='blue')
+                self.newRectangle.show(self.picCanvas,self.factor,color='blue')
 
     def funExit(self):
         self.master.quit()
@@ -205,26 +205,25 @@ class MainWindow():
                     # new rec starts
                     self.rectaCoordsStart=(ceventx/self.factor,ceventy/self.factor)
                     self.rectaCoordsEnd=self.rectaCoordsStart
-                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
+                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
                     self.editMode=emCREATING
                     self.editZoomOverlay=ezoNONE
                 else:
                     # enter editing of a rectangle
+                    delRecta=self.rectangles.pop(recIndex)
+                    delRecta.unshow(self.picCanvas)
+                    self.rectaCoordsStart=(delRecta.xs[1-recCorner[0]],delRecta.ys[1-recCorner[1]])
+                    self.rectaCoordsEnd=(ceventx/self.factor,ceventy/self.factor)
+                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
+                    self.refreshRectangles()
                     self.editMode=emCREATING
                     self.editZoomOverlay=ezoSHOWN
                     self.createZoomOverlay()
-                    delRecta=self.rectangles.pop(recIndex)
-                    delRecta.unshow()
-                    self.rectaCoordsStart=(delRecta.xs[1-recCorner[0]],delRecta.ys[1-recCorner[1]])
-                    self.rectaCoordsEnd=(ceventx/self.factor,ceventy/self.factor)
-                    self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
-                    self.refreshRectangles()
             elif self.editMode==emCREATING:
                 if self.editZoomOverlay==ezoSHOWN:
                     self.deleteZoomOverlay()
                 # this is the second corner click: remove the edit rect and
                 # add it to the rectangles' list
-                self.newRectangle.unshow()
                 self.newRectangle.sort()
                 self.rectangles.append(self.newRectangle)
                 self.newRectangle=None
@@ -238,7 +237,7 @@ class MainWindow():
                 # abort current rectangle creation
                 self.editMode=emINERT
                 self.editZoomOverlay=ezoNONE
-                self.newRectangle.unshow()
+                self.newRectangle.unshow(self.picCanvas)
                 self.newRectangle=None
             else:
                 # if pointer over an already created rectangle, delete it
@@ -264,7 +263,7 @@ class MainWindow():
         return None,None
 
     def removeRectangle(self,rectaIndex):
-        self.rectangles[rectaIndex].unshow()
+        self.rectangles[rectaIndex].unshow(self.picCanvas)
         self.rectangles.pop(rectaIndex)
 
     def funCanvasMotion(self,event,zoom=False):
@@ -284,9 +283,9 @@ class MainWindow():
                 print 'HANDLE ZOOM OVERLAY'
             # adjust second corner
             self.rectaCoordsEnd=self.pointerImageSize
-            self.newRectangle.unshow()
-            self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd,self.picCanvas)
-            self.newRectangle.show(self.factor,color='blue')
+            self.newRectangle.unshow(self.picCanvas)
+            self.newRectangle=SelRectangle(self.rectaCoordsStart,self.rectaCoordsEnd)
+            self.newRectangle.show(self.picCanvas,self.factor,color='blue')
 
     def funCanvasConfigure(self,event):
         # resize of window, hence of canvas
@@ -326,15 +325,23 @@ class MainWindow():
         # store position of zoom window
         self.zoomCenterPosition=self.pointerImageSize
         # perform zoom
-        clipRegionStart=centreAroundPoint(self.pointerImageSize,
+        self.clipRegionStart=centreAroundPoint(self.pointerImageSize,
             (zoCoo/picZoomFactor for zoCoo in picZoomSize))
-        clipRegionEnd=(coo+(clipSize/picZoomFactor) for coo,clipSize in zip(clipRegionStart,picZoomSize))
-        clipCoords=[int(coo) for qlist in [clipRegionStart,clipRegionEnd] for coo in qlist]
+        self.clipRegionEnd=(coo+(clipSize/picZoomFactor) for coo,clipSize in zip(self.clipRegionStart,picZoomSize))
+        clipCoords=[int(coo) for qlist in [self.clipRegionStart,self.clipRegionEnd] for coo in qlist]
         print clipCoords
         self.zoomImage=ImageTk.PhotoImage(self.loadedImage.crop(clipCoords).resize(picZoomSize,Image.NEAREST))
         self.picZoom.create_image(0,0,anchor=tk.NW,image=self.zoomImage)
         self.picZoom.place(x=cornX,y=cornY)
+        # handle recta's on zoom overlay. Calculate offset for invoking rectas' show()
+        # the offset is in real-pic units
+        for qrecta in self.rectangles:
+            qrecta.show(self.picZoom,picZoomFactor,width=2,color='red',offset=self.clipRegionStart)
+        if self.newRectangle:
+            self.newRectangle.show(self.picZoom,picZoomFactor,width=2,color='blue',offset=self.clipRegionStart)
 
     def deleteZoomOverlay(self):
         if self.picZoom is not None:
+            for qrecta in self.rectangles:
+                qrecta.unshow(self.picZoom)
             self.picZoom.destroy()

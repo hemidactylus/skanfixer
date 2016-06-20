@@ -4,24 +4,25 @@
 
 class SelRectangle():
 
-    def __init__(self,corner1,corner2,picCanvas):
+    def __init__(self,corner1,corner2):
         self.xs=[corner1[0],corner2[0]]
         self.ys=[corner1[1],corner2[1]]
-        self.canvas=picCanvas
-        self.rectaID=None
+        self.rectaID={}
 
-    def unshow(self):
-        if self.rectaID:
-            self.canvas.delete(self.rectaID)
+    def unshow(self,qcanvas):
+        if qcanvas._name in self.rectaID:
+            qcanvas.delete(self.rectaID[qcanvas._name])
+            del self.rectaID[qcanvas._name]
 
-    def show(self,factor=1.0,width=4,color='red'):
-        self.unshow()
+    def show(self,qcanvas,factor=1.0,width=4,color='red',offset=(0,0)):
+        self.unshow(qcanvas)
         self.sort()
-        self.rectaID=self.canvas.create_rectangle(self.asTuple(factor),width=width,outline=color)
+        self.rectaID[qcanvas._name]=qcanvas.create_rectangle(self.asTuple(factor,offset),width=width,outline=color)
 
-    def asTuple(self,counterFactor=1.0):
+    def asTuple(self,counterFactor=1.0,offset=(0,0)):
         returnee = (self.xs[0],self.ys[0],self.xs[1],self.ys[1])
-        return tuple(int(x *counterFactor) for x in returnee)
+        result =tuple(int((x-dx)*counterFactor) for x,dx in zip(returnee,offset*2))
+        return result
 
     def sort(self):
         '''
