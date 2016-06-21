@@ -1,2 +1,11 @@
-refactor click/move events (and the whole structure) so that it mainly works on the real-pic coords
-and uses the scaled-down ones only in hindsight.
+* Handle additional shift of the zoom window to avoid unreachable borders
+* If right click while in editing, undo edit (?) and not delete recta
+* edit on mid-sides (one direction only)
+* when clicking on a dense zone, pick the closest corner for editing
+
+* button held for one sec to activate zoom win
+* shortcut key to set rotation angle
+* shortcut key to set clip name
+
+* suggested rectangleness
+

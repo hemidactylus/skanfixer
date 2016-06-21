@@ -161,6 +161,7 @@ class MainWindow():
     def refreshRectangles(self):
         # handles all added rectangles and if present the editee one also
         for qRectaPair in self.rectangles:
+            qRectaPair.unshow(self.picCanvas)
             qRectaPair.show(self.picCanvas,self.factor)
 
         # do we have an editee rectangle?
