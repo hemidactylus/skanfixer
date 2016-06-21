@@ -10,12 +10,16 @@ class SelRectangle():
         self.rectaID={}
 
     def unshow(self,qcanvas):
+        print 'TryingToUnshow ', qcanvas._name, 
         if qcanvas._name in self.rectaID:
+            print 'OK'
             qcanvas.delete(self.rectaID[qcanvas._name])
             del self.rectaID[qcanvas._name]
+        else:
+            print 'no'
 
     def show(self,qcanvas,factor=1.0,width=4,color='red',offset=(0,0)):
-        self.unshow(qcanvas)
+        #self.unshow(qcanvas)
         self.sort()
         self.rectaID[qcanvas._name]=qcanvas.create_rectangle(self.asTuple(factor,offset),width=width,outline=color)
 
