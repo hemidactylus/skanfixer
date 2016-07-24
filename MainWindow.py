@@ -66,6 +66,9 @@ class MainWindow():
         self.picCanvas.bind('<Button-1>',lambda ev: self.funCanvasClick(ev,button=1))
         self.picCanvas.bind('<Button-2>',lambda ev: self.funCanvasClick(ev,button=2))
         self.picCanvas.bind('<Button-3>',lambda ev: self.funCanvasClick(ev,button=3))
+        self.picCanvas.bind('<ButtonRelease-1>',lambda ev: self.funButtonRelease(ev,button=1))
+        self.picCanvas.bind('<ButtonRelease-2>',lambda ev: self.funButtonRelease(ev,button=2))
+        self.picCanvas.bind('<ButtonRelease-3>',lambda ev: self.funButtonRelease(ev,button=3))
         self.picCanvas.bind('<Motion>',self.funCanvasMotion)
         self.picCanvas.bind('<Configure>',self.funCanvasConfigure)
 
@@ -186,6 +189,9 @@ class MainWindow():
             clippedImage=self.loadedImage.crop(qRecta.asTuple(1.0))
             clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
         print 'Done.'
+
+    def funButtonRelease(self,event,button):
+        print 'RELEASE', button
 
     def funCanvasClick(self,event,button,zoom=False):
         ceventx,ceventy=event.x,event.y
