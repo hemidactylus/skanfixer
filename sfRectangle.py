@@ -15,8 +15,15 @@ XY_IND_SEQ=((0,0),(1,0),(1,1),(0,1))
 
 class sfRectangle():
     
-    def __init__(self,p1,p2):
+    def __init__(self,p1,p2,canvasMap,color='red'):
         self.srcPoints=(p1,p2)
+        self.boundCanvases=set()
+        self.canvasMap=canvasMap
+        self.drawingIDs={}
+        self.color=color
+
+    def setColor(self,color='red'):
+        self.color=color
 
     def __str__(self):
         return 'sfRectangle{%s ; %s}' % (self.srcPoints)
@@ -33,4 +40,46 @@ class sfRectangle():
             returns a 4-item tuple of sorted (x_min,y_min,x_max,y_max) values for use with Canvas.create_rectangle
         '''
         return tuple([fun([pt[dim] for pt in self.srcPoints]) for fun in [min,max] for dim in ['x','y']])
-    
+
+    def registerCanvas(self,canTag):
+        '''
+            binds a new canvas to this rectangle by means of this rectangle's own dict
+            from canvas tags to canvas objects
+        '''
+        self.boundCanvases.add(canTag)
+
+        # display this rectangle using the map and going onto the canvas
+        self.drawRectangle(canTag)
+
+    def drawRectangle(self,canvasTag):
+        '''
+            uses the affine map to draw the rectangle onto the required canvas
+        '''
+
+        targetCanvas=self.canvasMap[canvasTag] # is a sfCanvas
+        coordMapper=self.canvasMap[canvasTag].mapper # is a mapper function sfPoint -> sfPoint
+
+        # destroy a previously shown rectangle if necessary!
+        self.unshowRectangle(canvasTag)
+
+        # rewrite this with a 'map' and a *pts
+        mapRect=sfRectangle(coordMapper(self.srcPoints[0]),coordMapper(self.srcPoints[1]),{})
+        drawingID=targetCanvas.create_rectangle(mapRect.sortedTuple(),width=3,outline=self.color)
+
+        self.drawingIDs[canvasTag]=drawingID
+
+    def unshowRectangle(self,canvasTag):
+        targetCanvas=self.canvasMap[canvasTag] # is a sfCanvas
+        if canvasTag in self.drawingIDs:
+            targetCanvas.delete(self.drawingIDs[canvasTag])
+            del self.drawingIDs[canvasTag]
+
+    def deregisterCanvas(self,canvasTag):
+        '''
+            to deregister a rectangle from a given canvas, the latter's tag suffices
+        '''
+        assert (canvasTag in self.boundCanvases)
+
+        self.unshowRectangle(canvasTag)
+
+        self.boundCanvases=self.boundCanvases - {canvasTag}
