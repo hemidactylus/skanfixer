@@ -4,9 +4,9 @@
 
 class sfPoint():
 
-    def __init__(self,x,y):
-        self.x=x
-        self.y=y
+    def __init__(self,x=0,y=0):
+        self.x=float(x)
+        self.y=float(y)
 
     def __str__(self):
         return 'sfPoint[%f,%f]' % (self.x,self.y)
@@ -16,6 +16,9 @@ class sfPoint():
 
     def asTuple(self):
         return tuple(x,y)
+
+    def copy(self):
+        return sfPoint(self.x,self.y)
 
     def __getitem__(self,idx):
         if idx=='x':

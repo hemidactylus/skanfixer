@@ -16,7 +16,7 @@ XY_IND_SEQ=((0,0),(1,0),(1,1),(0,1))
 class sfRectangle():
     
     def __init__(self,p1,p2,canvasMap,color='red'):
-        self.srcPoints=(p1,p2)
+        self.srcPoints=(p1.copy(),p2.copy())
         self.boundCanvases=set()
         self.canvasMap=canvasMap
         self.drawingIDs={}
@@ -24,6 +24,7 @@ class sfRectangle():
 
     def setColor(self,color='red'):
         self.color=color
+        self.refreshDisplay()
 
     def __str__(self):
         return 'sfRectangle{%s ; %s}' % (self.srcPoints)
@@ -51,6 +52,28 @@ class sfRectangle():
         # display this rectangle using the map and going onto the canvas
         self.drawRectangle(canTag)
 
+    def dragPoint(self,pointIndex,newPoint):
+        '''
+            changes the position of one corner of the rectangle and automatically drags the rest
+            of the representation along. Invokes the refreshes for all registered canvases.
+            pointIndex refers to the same indexing as XY_IND_SEQ
+        '''
+        xindex=XY_IND_SEQ[pointIndex][0]
+        yindex=XY_IND_SEQ[pointIndex][1]
+        newPts=list(self.srcPoints)
+        newPts[xindex].x=newPoint.x
+        newPts[xindex].y=newPoint.y
+        self.srcPoints=tuple(newPts)
+        self.refreshDisplay()
+
+    def refreshDisplay(self):
+        '''
+            Re-displays on all registered canvases
+        '''
+        for canv in self.boundCanvases:
+            self.drawRectangle(canv)
+
+
     def drawRectangle(self,canvasTag):
         '''
             uses the affine map to draw the rectangle onto the required canvas
@@ -63,7 +86,7 @@ class sfRectangle():
         self.unshowRectangle(canvasTag)
 
         # rewrite this with a 'map' and a *pts
-        mapRect=sfRectangle(coordMapper(self.srcPoints[0]),coordMapper(self.srcPoints[1]),{})
+        mapRect=sfRectangle(coordMapper(self.srcPoints[0],'r'),coordMapper(self.srcPoints[1],'r'),{})
         drawingID=targetCanvas.create_rectangle(mapRect.sortedTuple(),width=3,outline=self.color)
 
         self.drawingIDs[canvasTag]=drawingID
