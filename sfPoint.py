@@ -20,6 +20,12 @@ class sfPoint():
     def copy(self):
         return sfPoint(self.x,self.y)
 
+    def distance2(self,other):
+        '''
+            returns the squared distance between the two points (Euclidean metric)
+        '''
+        return (((self.x-other.x)**2)+((self.y-other.y)**2))
+
     def __getitem__(self,idx):
         if idx=='x':
             return self.x

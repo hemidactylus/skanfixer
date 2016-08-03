@@ -36,6 +36,22 @@ class sfRectangle():
         '''
         return [sfPoint(self.srcPoints[ix]['x'],self.srcPoints[iy]['y'],) for ix,iy in XY_IND_SEQ]
 
+    def nearestCorner(self,oPoint):
+        '''
+            returns a 2-uple (index,distance2) of the corner (out of four)
+            which is closest to the provided point
+        '''
+        pDistances=[oPoint.distance2(corner) for corner in self.corners()]
+        return sorted(enumerate(pDistances),key=lambda x: x[1])[0]
+
+    def anywhereDistance(self,oPoint):
+        '''
+            returns a 'distance to rectangle', defined as the min distance
+            between any point on the rectangle outline and the given oPoint
+        '''
+        pCorners=self.corners()
+        TO DO
+
     def sortedTuple(self):
         '''
             returns a 4-item tuple of sorted (x_min,y_min,x_max,y_max) values for use with Canvas.create_rectangle
@@ -62,7 +78,7 @@ class sfRectangle():
         yindex=XY_IND_SEQ[pointIndex][1]
         newPts=list(self.srcPoints)
         newPts[xindex].x=newPoint.x
-        newPts[xindex].y=newPoint.y
+        newPts[yindex].y=newPoint.y
         self.srcPoints=tuple(newPts)
         self.refreshDisplay()
 
@@ -90,6 +106,13 @@ class sfRectangle():
         drawingID=targetCanvas.create_rectangle(mapRect.sortedTuple(),width=3,outline=self.color)
 
         self.drawingIDs[canvasTag]=drawingID
+
+    def disappear(self):
+        '''
+            undraw the rectangle from all canvases where it is registered and drawn
+        '''
+        for canvTag in self.canvasMap:
+            self.unshowRectangle(canvTag)
 
     def unshowRectangle(self,canvasTag):
         targetCanvas=self.canvasMap[canvasTag] # is a sfCanvas
