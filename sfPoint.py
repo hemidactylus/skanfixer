@@ -26,6 +26,19 @@ class sfPoint():
         '''
         return (((self.x-other.x)**2)+((self.y-other.y)**2))
 
+    def distanceToAxisSegment(self,segment):
+        '''
+            Given a segment as a 2-item array of sfPoints, assumed to lie
+            EITHER ON THE x or THE y AXIS, this gives the distance to it
+        '''
+        # distance from self to the segment segment. Horiz or vert?
+        constAxis='x' if segment[0]['x']==segment[1]['x'] else 'y'
+        varAxis='y' if constAxis=='x' else 'x'
+        thisDistance=(self[constAxis]-segment[0][constAxis])**2.0
+        if self[varAxis]<=min(cS[varAxis] for cS in segment) or self[varAxis]>=max(cS[varAxis] for cS in segment):
+            thisDistance+=min([(cS[varAxis]-self[varAxis])**2.0 for cS in segment])
+        return thisDistance
+
     def __getitem__(self,idx):
         if idx=='x':
             return self.x

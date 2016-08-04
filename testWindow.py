@@ -18,6 +18,7 @@ from sfRectangle import sfRectangle
 from sfCanvas import sfCanvas
 from sfAffineMaps import createAffineMap
 from sfSettings import settings
+from sfUtilities import popItem
 
 class testWindow():
 
@@ -96,6 +97,8 @@ class testWindow():
             Returns either None or a 2-uple (c,X) with c character and X object
             character:
                 'c' = corner, what follows is (rectangle,(corner_index,distance2))
+
+            TODO: this will return a dict with all types of match in any case (or empty)
         '''
         # try and pick the nearest corner among all rectangles
         if len(self.rectangles)>0:
@@ -104,6 +107,13 @@ class testWindow():
             if math.sqrt(closestCorner[1][1]) <= settings['MIN_NEARCLICK_DISTANCE']:
                 return ('c',closestCorner)
         # here should take care of side-edits
+        's'
+        # here just look for a close rectangle in its whole outline
+        if len(self.rectangles)>0:
+            possibleRectangles=[(rec,rec.anywhereDistance(point)) for rec in self.rectangles]
+            closestRectangle=sorted(possibleRectangles,key=lambda p: p[1])[0]
+            if math.sqrt(closestRectangle[1]) <= settings['MIN_NEARCLICK_DISTANCE']:
+                return ('r',closestRectangle)
         # finally, if all else fails
         return None
 
@@ -125,14 +135,19 @@ class testWindow():
                     self.edit.targetRectangle=closeThing[1][0]
                     self.edit.targetRectangle.setColor('blue')
             elif button==3:
-                print 'TO DO'
+                closeThing=self.findCloseThing(evPoint)
+                if closeThing is None:
+                    pass
+                elif closeThing[0]=='c' or closeThing[0]=='r' or closeThing[0]=='s':
+                    closeThing[1][0].disappear()
+                    popItem(self.rectangles,closeThing[1][0])
         elif self.edit.status==emEDITCORNER:
             if button==1:
                 self.edit.targetRectangle.setColor('red')
                 self.edit.status=emINERT
             elif button==3:
                 self.edit.targetRectangle.disappear()
-                self.rectangles.pop(self.rectangles.index(self.edit.targetRectangle))
+                popItem(self.rectangles,self.edit.targetRectangle)
                 self.edit.status=emINERT
                 self.edit.targetRectangle=None
         else:
@@ -148,6 +163,13 @@ class testWindow():
         #print self.edit.cursorPos
         if self.edit.status==emEDITCORNER:
             self.edit.targetRectangle.dragPoint(self.edit.targetCorner,evPoint)
+        elif self.edit.status==emINERT:
+            # temporary coloring of rectangles
+            for qRec in self.rectangles:
+                qRec.setColor('red')
+            closeThing=self.findCloseThing(evPoint)
+            if closeThing is not None:
+                closeThing[1][0].setColor('green')
 
     def canvasConfigure(self,event):
         print 'CONFIGURE %i,%i' % (event.width,event.height)

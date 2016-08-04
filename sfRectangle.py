@@ -49,8 +49,11 @@ class sfRectangle():
             returns a 'distance to rectangle', defined as the min distance
             between any point on the rectangle outline and the given oPoint
         '''
-        pCorners=self.corners()
-        TO DO
+        cCorners=list(self.corners())
+        distances=[]
+        for cSegment in zip(cCorners,cCorners[1:]+cCorners[0:1]):
+            distances.append(oPoint.distanceToAxisSegment(cSegment))
+        return min(distances)
 
     def sortedTuple(self):
         '''
