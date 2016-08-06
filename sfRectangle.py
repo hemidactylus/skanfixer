@@ -12,6 +12,12 @@ XY_IND_SEQ=((0,0),(1,0),(1,1),(0,1))
     this means: the second corner of a rectangle -> (1,0)
         -> the x is the one of the second point (1), the y is the one of the first point (0)
 '''
+# side-indices for drag-side
+CI_SID_SEQ=((0,'y'),(1,'x'),(1,'y'),(0,'x'))
+'''
+    this means: the second side is (1,'x'):
+        -> when altering the second side, set the 'x' of the second (1) point.
+'''
 
 class sfRectangle():
     
@@ -23,8 +29,9 @@ class sfRectangle():
         self.color=color
 
     def setColor(self,color='red'):
-        self.color=color
-        self.refreshDisplay()
+        if self.color!=color:
+            self.color=color
+            self.refreshDisplay()
 
     def __str__(self):
         return 'sfRectangle{%s ; %s}' % (self.srcPoints)
@@ -43,6 +50,16 @@ class sfRectangle():
         '''
         pDistances=[oPoint.distance2(corner) for corner in self.corners()]
         return sorted(enumerate(pDistances),key=lambda x: x[1])[0]
+
+    def nearestMidpoint(self,oPoint):
+        '''
+            returns a 2-uple (index,distance2) of the midpoint (out of four, indexed
+            as n -> between points n and (n+1)%4)
+            which is closest to the provided point
+        '''
+        sCorners=list(self.corners())
+        mDistances=[oPoint.distance2(corner1.midpoint(corner2)) for corner1,corner2 in zip(sCorners,sCorners[1:]+sCorners[0:1])]
+        return sorted(enumerate(mDistances),key=lambda x: x[1])[0]
 
     def anywhereDistance(self,oPoint):
         '''
@@ -82,6 +99,21 @@ class sfRectangle():
         newPts=list(self.srcPoints)
         newPts[xindex].x=newPoint.x
         newPts[yindex].y=newPoint.y
+        self.srcPoints=tuple(newPts)
+        self.refreshDisplay()
+
+    def dragSide(self,sideIndex,newPoint):
+        '''
+            changes the position of a side of the rectangle and automatically drags the rest
+            of the representation along.
+            This means changing just on coordinate of just one of the points.
+            Invokes the refreshes for all registered canvases.
+            pointIndex refers to the same indexing as XY_IND_SEQ
+        '''
+        ptindex=CI_SID_SEQ[sideIndex][0]
+        coord=CI_SID_SEQ[sideIndex][1]
+        newPts=list(self.srcPoints)
+        newPts[ptindex][coord]=newPoint[coord]
         self.srcPoints=tuple(newPts)
         self.refreshDisplay()
 

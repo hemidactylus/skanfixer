@@ -26,6 +26,12 @@ class sfPoint():
         '''
         return (((self.x-other.x)**2)+((self.y-other.y)**2))
 
+    def midpoint(self,other):
+        '''
+            returns the mid point between this point and another
+        '''
+        return sfPoint(0.5*(self.x+other.x),0.5*(self.y+other.y))
+
     def distanceToAxisSegment(self,segment):
         '''
             Given a segment as a 2-item array of sfPoints, assumed to lie
@@ -44,5 +50,13 @@ class sfPoint():
             return self.x
         elif idx=='y':
             return self.y
+        else:
+            raise KeyError(idx)
+
+    def __setitem__(self,idx,value):
+        if idx=='x':
+            self.x=value
+        elif idx=='y':
+            self.y=value
         else:
             raise KeyError(idx)

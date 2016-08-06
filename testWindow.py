@@ -5,6 +5,7 @@
 # edit modes
 emINERT=0
 emEDITCORNER=1
+emEDITSIDE=2
 
 # standard imports
 import Tkinter as tk
@@ -54,7 +55,7 @@ class testWindow():
 
         # Window layout
         self.master=master
-        self.master.geometry('200x200')
+        self.master.geometry('500x500')
         # controls are in a frame
         self.controlPanel=tk.Frame(self.master)
         self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
@@ -107,7 +108,11 @@ class testWindow():
             if math.sqrt(closestCorner[1][1]) <= settings['MIN_NEARCLICK_DISTANCE']:
                 return ('c',closestCorner)
         # here should take care of side-edits
-        's'
+        if len(self.rectangles)>0:
+            possibleMidpoints=[(rec,rec.nearestMidpoint(point)) for rec in self.rectangles]
+            closestMidpoint=sorted(possibleMidpoints,key=lambda p:p[1][1])[0]
+            if math.sqrt(closestMidpoint[1][1]) <= settings['MIN_NEARCLICK_DISTANCE']:
+                return ('s',closestMidpoint)
         # here just look for a close rectangle in its whole outline
         if len(self.rectangles)>0:
             possibleRectangles=[(rec,rec.anywhereDistance(point)) for rec in self.rectangles]
@@ -123,7 +128,7 @@ class testWindow():
             if button==1:
                 closeThing=self.findCloseThing(evPoint)
                 if closeThing is None:
-                    newRe=sfRectangle(evPoint,evPoint,canvasMap=self.canvasMap,color='blue')
+                    newRe=sfRectangle(evPoint,evPoint,canvasMap=self.canvasMap,color=settings['COLOR']['EDITING'])
                     newRe.registerCanvas('mainView')
                     self.rectangles.append(newRe)
                     self.edit.targetRectangle=newRe
@@ -133,7 +138,12 @@ class testWindow():
                     self.edit.status=emEDITCORNER
                     self.edit.targetCorner=closeThing[1][1][0]
                     self.edit.targetRectangle=closeThing[1][0]
-                    self.edit.targetRectangle.setColor('blue')
+                    self.edit.targetRectangle.setColor(settings['COLOR']['EDITING'])
+                elif closeThing[0]=='s':
+                    self.edit.status=emEDITSIDE
+                    self.edit.targetSide=closeThing[1][1][0]
+                    self.edit.targetRectangle=closeThing[1][0]
+                    self.edit.targetRectangle.setColor(settings['COLOR']['EDITING'])
             elif button==3:
                 closeThing=self.findCloseThing(evPoint)
                 if closeThing is None:
@@ -141,13 +151,16 @@ class testWindow():
                 elif closeThing[0]=='c' or closeThing[0]=='r' or closeThing[0]=='s':
                     closeThing[1][0].disappear()
                     popItem(self.rectangles,closeThing[1][0])
-        elif self.edit.status==emEDITCORNER:
+                    self.canvasMotion(event)
+        elif self.edit.status==emEDITCORNER or self.edit.status==emEDITSIDE:
             if button==1:
-                self.edit.targetRectangle.setColor('red')
+                self.edit.targetRectangle.setColor(settings['COLOR']['INERT'])
                 self.edit.status=emINERT
+                self.canvasMotion(event)
             elif button==3:
                 self.edit.targetRectangle.disappear()
                 popItem(self.rectangles,self.edit.targetRectangle)
+                self.canvasMotion(event)
                 self.edit.status=emINERT
                 self.edit.targetRectangle=None
         else:
@@ -163,13 +176,15 @@ class testWindow():
         #print self.edit.cursorPos
         if self.edit.status==emEDITCORNER:
             self.edit.targetRectangle.dragPoint(self.edit.targetCorner,evPoint)
+        if self.edit.status==emEDITSIDE:
+            self.edit.targetRectangle.dragSide(self.edit.targetSide,evPoint)
         elif self.edit.status==emINERT:
             # temporary coloring of rectangles
             for qRec in self.rectangles:
-                qRec.setColor('red')
+                qRec.setColor(settings['COLOR']['INERT'])
             closeThing=self.findCloseThing(evPoint)
             if closeThing is not None:
-                closeThing[1][0].setColor('green')
+                closeThing[1][0].setColor(settings['COLOR']['SELECTABLE'])
 
     def canvasConfigure(self,event):
         print 'CONFIGURE %i,%i' % (event.width,event.height)
