@@ -4,6 +4,7 @@ settings={
     'COLOR': {
         'EDITING': 'red',
         'INERT': 'green',
-        'SELECTABLE': 'yellow'
-    }
+        'SELECTABLE': 'orange'
+    },
+    'DRAG_HANDLE_SIZE': 4,
 }

@@ -5,6 +5,7 @@
 '''
 
 from sfPoint import sfPoint
+from sfSettings import settings
 
 # source-point-xy-indices-pairs:
 XY_IND_SEQ=((0,0),(1,0),(1,1),(0,1))
@@ -27,6 +28,7 @@ class sfRectangle():
         self.canvasMap=canvasMap
         self.drawingIDs={}
         self.color=color
+        self.decorations={}
 
     def setColor(self,color='red'):
         if self.color!=color:
@@ -77,6 +79,31 @@ class sfRectangle():
             returns a 4-item tuple of sorted (x_min,y_min,x_max,y_max) values for use with Canvas.create_rectangle
         '''
         return tuple([fun([pt[dim] for pt in self.srcPoints]) for fun in [min,max] for dim in ['x','y']])
+
+    def decorate(self,tag,decType,decIndex):
+        '''
+            adds a decoration - a graphical gizmo - to the representation of the rectangle.
+            tag is used for subsequent undecoration
+            decType='c' or 's' for corner or side resp.
+            decIndex is a 0-3 index to specify decoration position.
+
+            This call automatically triggers redisplay on all attached canvases
+        '''
+        if decType in ['c','s']:
+            self.decorations[tag]={'type':decType, 'index': decIndex, 'drawingIDs':{}}
+            self.refreshDisplay()
+        else:
+            raise ValueError(decType)
+
+    def undecorate(self,tag):
+        '''
+            Removes a decoration from the decorations-set of this rectangle,
+            invoking redraws as necessary
+        '''
+        if tag in self.decorations:
+            self.disappear()
+            del self.decorations[tag]
+            self.refreshDisplay()
 
     def registerCanvas(self,canTag):
         '''
@@ -139,8 +166,30 @@ class sfRectangle():
         # rewrite this with a 'map' and a *pts
         mapRect=sfRectangle(coordMapper(self.srcPoints[0],'r'),coordMapper(self.srcPoints[1],'r'),{})
         drawingID=targetCanvas.create_rectangle(mapRect.sortedTuple(),width=3,outline=self.color)
-
         self.drawingIDs[canvasTag]=drawingID
+        # handle decorations attached to this rectangle
+        for dk,dv in self.decorations.iteritems():
+            print 'DecoDrawing %s' % dk
+            dv['drawingIDs'][canvasTag]=self.drawDecoration(targetCanvas,dv['type'],dv['index'])
+
+    def drawDecoration(self,tCanvas,dType,dIndex):
+        '''
+            actually draws the decoration to the rectangle and returns the drawing ID to the caller
+        '''
+        coordMapper=tCanvas.mapper # is a mapper function sfPoint -> sfPoint
+        if dType=='c':
+            canvCentre=coordMapper(self.corners()[dIndex],'r') # this is a sfPoint
+            decRect=sfRectangle(canvCentre.shift( \
+                -settings['DRAG_HANDLE_SIZE'],-settings['DRAG_HANDLE_SIZE']), \
+                canvCentre.shift(+settings['DRAG_HANDLE_SIZE'],+settings['DRAG_HANDLE_SIZE']),{})
+            return tCanvas.create_rectangle(decRect.sortedTuple(),width=0,fill=self.color)
+        elif dType=='s':
+            rCorners=self.corners()
+            canvCentre=coordMapper(rCorners[dIndex].midpoint(rCorners[(dIndex+1)%4]),'r') # this is a sfPoint
+            decRect=sfRectangle(canvCentre.shift( \
+                -settings['DRAG_HANDLE_SIZE'],-settings['DRAG_HANDLE_SIZE']), \
+                canvCentre.shift(+settings['DRAG_HANDLE_SIZE'],+settings['DRAG_HANDLE_SIZE']),{})
+            return tCanvas.create_rectangle(decRect.sortedTuple(),width=0,fill=self.color)
 
     def disappear(self):
         '''
@@ -154,6 +203,11 @@ class sfRectangle():
         if canvasTag in self.drawingIDs:
             targetCanvas.delete(self.drawingIDs[canvasTag])
             del self.drawingIDs[canvasTag]
+        for dv in self.decorations.values():
+            if canvasTag in dv['drawingIDs']:
+                targetCanvas.delete(dv['drawingIDs'][canvasTag])
+                del dv['drawingIDs'][canvasTag]
+
 
     def deregisterCanvas(self,canvasTag):
         '''

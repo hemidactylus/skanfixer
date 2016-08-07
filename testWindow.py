@@ -160,9 +160,9 @@ class testWindow():
             elif button==3:
                 self.edit.targetRectangle.disappear()
                 popItem(self.rectangles,self.edit.targetRectangle)
-                self.canvasMotion(event)
-                self.edit.status=emINERT
                 self.edit.targetRectangle=None
+                self.edit.status=emINERT
+                self.canvasMotion(event)
         else:
             raise ValueError('self.edit.status')
         print 'rectangles = %i' % len(self.rectangles)
@@ -182,8 +182,13 @@ class testWindow():
             # temporary coloring of rectangles
             for qRec in self.rectangles:
                 qRec.setColor(settings['COLOR']['INERT'])
+                qRec.undecorate('handle')
             closeThing=self.findCloseThing(evPoint)
             if closeThing is not None:
+                if closeThing[0]=='c':
+                    closeThing[1][0].decorate('handle','c',closeThing[1][1][0])
+                if closeThing[0]=='s':
+                    closeThing[1][0].decorate('handle','s',closeThing[1][1][0])
                 closeThing[1][0].setColor(settings['COLOR']['SELECTABLE'])
 
     def canvasConfigure(self,event):

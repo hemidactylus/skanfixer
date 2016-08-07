@@ -45,6 +45,12 @@ class sfPoint():
             thisDistance+=min([(cS[varAxis]-self[varAxis])**2.0 for cS in segment])
         return thisDistance
 
+    def shift(self,deltaX,deltaY):
+        '''
+            Returns a new sfPoint with coordinates additively changed by the provided amounts
+        '''
+        return sfPoint(self.x+deltaX,self.y+deltaY)
+
     def __getitem__(self,idx):
         if idx=='x':
             return self.x
