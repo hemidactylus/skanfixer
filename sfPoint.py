@@ -15,7 +15,7 @@ class sfPoint():
         return self.__str__()
 
     def asTuple(self):
-        return tuple(x,y)
+        return tuple((self.x,self.y))
 
     def copy(self):
         return sfPoint(self.x,self.y)

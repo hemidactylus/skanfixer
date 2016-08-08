@@ -6,5 +6,6 @@ settings={
         'INERT': 'green',
         'SELECTABLE': 'orange'
     },
-    'DRAG_HANDLE_SIZE': 4,
+    'CORNER_DRAG_HANDLE_SIZE': 4,
+    'SIDE_DRAG_HANDLE_SIZE': 6,
 }

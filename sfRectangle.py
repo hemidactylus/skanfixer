@@ -180,16 +180,17 @@ class sfRectangle():
         if dType=='c':
             canvCentre=coordMapper(self.corners()[dIndex],'r') # this is a sfPoint
             decRect=sfRectangle(canvCentre.shift( \
-                -settings['DRAG_HANDLE_SIZE'],-settings['DRAG_HANDLE_SIZE']), \
-                canvCentre.shift(+settings['DRAG_HANDLE_SIZE'],+settings['DRAG_HANDLE_SIZE']),{})
+                -settings['CORNER_DRAG_HANDLE_SIZE'],-settings['CORNER_DRAG_HANDLE_SIZE']), \
+                canvCentre.shift(+settings['CORNER_DRAG_HANDLE_SIZE'],+settings['CORNER_DRAG_HANDLE_SIZE']),{})
             return tCanvas.create_rectangle(decRect.sortedTuple(),width=0,fill=self.color)
         elif dType=='s':
             rCorners=self.corners()
             canvCentre=coordMapper(rCorners[dIndex].midpoint(rCorners[(dIndex+1)%4]),'r') # this is a sfPoint
-            decRect=sfRectangle(canvCentre.shift( \
-                -settings['DRAG_HANDLE_SIZE'],-settings['DRAG_HANDLE_SIZE']), \
-                canvCentre.shift(+settings['DRAG_HANDLE_SIZE'],+settings['DRAG_HANDLE_SIZE']),{})
-            return tCanvas.create_rectangle(decRect.sortedTuple(),width=0,fill=self.color)
+            polyVertices=tuple(canvCentre.shift(-settings['SIDE_DRAG_HANDLE_SIZE'],0).asTuple()+ \
+                               canvCentre.shift(0,+settings['SIDE_DRAG_HANDLE_SIZE']).asTuple()+ \
+                               canvCentre.shift(+settings['SIDE_DRAG_HANDLE_SIZE'],0).asTuple()+ \
+                               canvCentre.shift(0,-settings['SIDE_DRAG_HANDLE_SIZE']).asTuple())
+            return tCanvas.create_polygon(*polyVertices,width=0,fill=self.color)
 
     def disappear(self):
         '''
