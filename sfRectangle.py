@@ -169,7 +169,6 @@ class sfRectangle():
         self.drawingIDs[canvasTag]=drawingID
         # handle decorations attached to this rectangle
         for dk,dv in self.decorations.iteritems():
-            print 'DecoDrawing %s' % dk
             dv['drawingIDs'][canvasTag]=self.drawDecoration(targetCanvas,dv['type'],dv['index'])
 
     def drawDecoration(self,tCanvas,dType,dIndex):
