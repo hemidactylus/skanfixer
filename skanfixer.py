@@ -145,11 +145,18 @@ class sfMain():
             # set affine map
             self.picCanvas.setMap(createAffineMap(self.image.scaleFactor,self.image.scaleFactor))
             # rescale pic, show it
+            print 'Should set up the pic layer and remove the previous one'
+            self.refreshRectangles()
 
     def refreshWindowTitle(self):
-        self.master.title('Skanfixer - %s (%i/%i)' % (self.image.loadedFileName,
-            self.image.loadedFileIndex+1,
-            len(self.image.imageList)))
+        if self.image.loadedImage is not None:
+            self.master.title('Skanfixer - %s (%i/%i) %ix%ipx' % (self.image.loadedFileName,
+                self.image.loadedFileIndex+1,
+                len(self.image.imageList),
+                self.image.loadedImage.size[0],
+                self.image.loadedImage.size[1]))
+        else:
+            self.master.title('Skanfixer')
 
     def funExit(self):
         self.master.quit()

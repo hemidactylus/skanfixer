@@ -1,6 +1,6 @@
 # sfSettings: at the moment a simple dict with some settings
 settings={
-    'MIN_NEARCLICK_DISTANCE': 40,
+    'MIN_NEARCLICK_DISTANCE': 16,
     'COLOR': {
         'EDITING': 'red',
         'INERT': 'green',
