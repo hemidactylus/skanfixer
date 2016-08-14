@@ -37,7 +37,7 @@ class sfMain():
                     - edit.cursorPos:       a (image-coordinate) sfPoint
                     - edit.status:          edit mode (shaping a recta/not)
                     - edit.targetRectangle: if shaping a recta, this is a sfRectangle
-                    - edit.targetCorner:    if shaping a recta, this is the grabbed corner index
+                    - edit.targetPoint:     if shaping a recta, this is the grabbed corner/side index
 
                 * rectangles:               a list of rectangles (with their bindings and everything)
         '''
@@ -47,7 +47,8 @@ class sfMain():
             cursorPos=sfPoint()
             status=emINERT
             targetRectangle=None
-            targetCorner=0
+            targetPoint=0
+            undoRectangle=None
 
         # setting up the data members
         self.rectangles=[]
@@ -138,18 +139,17 @@ class sfMain():
                     newRe.registerCanvas('mainView')
                     self.rectangles.append(newRe)
                     self.edit.targetRectangle=newRe
-                    self.edit.targetCorner=0
+                    self.edit.targetPoint=0
                     self.edit.status=emEDITCORNER
-                elif closeThing[0]=='c':
-                    self.edit.status=emEDITCORNER
-                    self.edit.targetCorner=closeThing[1][1][0]
+                elif closeThing[0] in ['c','s']:
+                    if closeThing[0]=='c':
+                        self.edit.status=emEDITCORNER
+                    elif closeThing[0]=='s':
+                        self.edit.status=emEDITSIDE
+                    self.edit.targetPoint=closeThing[1][1][0]
                     self.edit.targetRectangle=closeThing[1][0]
                     self.edit.targetRectangle.setColor(settings['COLOR']['EDITING'])
-                elif closeThing[0]=='s':
-                    self.edit.status=emEDITSIDE
-                    self.edit.targetSide=closeThing[1][1][0]
-                    self.edit.targetRectangle=closeThing[1][0]
-                    self.edit.targetRectangle.setColor(settings['COLOR']['EDITING'])
+                    self.edit.undoRectangle=self.edit.targetRectangle.bareCopy()
             elif button==3:
                 closeThing=self.findCloseThing(evPoint)
                 if closeThing is None:
@@ -166,6 +166,12 @@ class sfMain():
             elif button==3:
                 self.edit.targetRectangle.disappear()
                 popItem(self.rectangles,self.edit.targetRectangle)
+                # if possible, just undo currently-edited rectangle to former state
+                if self.edit.undoRectangle is not None:
+                    self.edit.undoRectangle.setColor(settings['COLOR']['INERT'])
+                    self.edit.undoRectangle.registerCanvas('mainView')
+                    self.rectangles.append(self.edit.undoRectangle)
+                    self.edit.undoRectangle=None
                 self.edit.targetRectangle=None
                 self.edit.status=emINERT
                 self.canvasMotion(event)
@@ -181,9 +187,9 @@ class sfMain():
         self.edit.cursorPos=evPoint
         #print self.edit.cursorPos
         if self.edit.status==emEDITCORNER:
-            self.edit.targetRectangle.dragPoint(self.edit.targetCorner,evPoint)
+            self.edit.targetRectangle.dragPoint(self.edit.targetPoint,evPoint)
         if self.edit.status==emEDITSIDE:
-            self.edit.targetRectangle.dragSide(self.edit.targetSide,evPoint)
+            self.edit.targetRectangle.dragSide(self.edit.targetPoint,evPoint)
         elif self.edit.status==emINERT:
             # temporary coloring of rectangles
             for qRec in self.rectangles:

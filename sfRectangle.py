@@ -38,6 +38,9 @@ class sfRectangle():
     def __str__(self):
         return 'sfRectangle{%s ; %s}' % (self.srcPoints)
 
+    def bareCopy(self):
+        return sfRectangle(self.srcPoints[0],self.srcPoints[1],self.canvasMap)
+
     def corners(self):
         '''
             returns all four corners as a 4-item array of sfPoints,
