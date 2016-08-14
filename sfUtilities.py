@@ -17,3 +17,14 @@ def isPicture(filename):
         temporary implementation: this returns True for files which are image files
     '''
     return filename[-3:].lower() in ['jpg'] or filename[-4:].lower() in ['jpeg']
+
+def findRescaleFactor(imgSize,allowedSize,allowZoom=True):
+    '''
+        finds the rescale factor given an image size and the size of the container
+    '''
+    mFactor=max(float(imgDim)/float(alwDim) for imgDim,alwDim in zip(imgSize,allowedSize))
+    if not allowZoom:
+        if mFactor<1:
+            mFactor=1
+    print 'mFactor=%.3f' % mFactor
+    return mFactor

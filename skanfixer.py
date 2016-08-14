@@ -24,6 +24,7 @@ from sfSettings import settings
 from sfUtilities import (
                             popItem,
                             listImageFiles,
+                            findRescaleFactor,
                         )
 
 class sfMain():
@@ -61,7 +62,7 @@ class sfMain():
 
         # Window layout
         self.master=master
-        self.master.geometry('500x500')
+        self.master.geometry('%ix%i' % (settings['WINDOW_SIZE']['WIDTH'],settings['WINDOW_SIZE']['HEIGHT']))
         # controls are in a frame
         self.controlPanel=tk.Frame(self.master)
         self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
@@ -96,12 +97,15 @@ class sfMain():
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
 
         # directory/images part
-        class fileHandlingInfo():
+        class imageHandlingInfo():
             directory=os.getcwd()
             imageList=listImageFiles(directory)
             loadedFileIndex=None
+            loadedFileName=None
+            loadedImage=None
+            scaleFactor=1.0
 
-        self.image=fileHandlingInfo()
+        self.image=imageHandlingInfo()
         print self.image.imageList
         if self.image.imageList:
             self.loadImage(0)
@@ -116,9 +120,36 @@ class sfMain():
 
     def loadImage(self,nIndex):
         self.image.loadedFileIndex=nIndex
+        self.image.loadedFileName=self.image.imageList[nIndex]
         print self.image.imageList[nIndex]
-        self.master.title('Skanfixer - %s (%i/%i)' % (self.image.imageList[nIndex],nIndex+1,len(self.image.imageList)))
+        # actual loading
+        self.image.loadedImage=Image.open(os.path.join(self.image.directory,self.image.loadedFileName))
+        self.refreshCanvas()
+        #
         self.clearRectangles()
+        self.refreshWindowTitle()
+
+    def refreshCanvas(self):
+        '''
+            if there's an image loaded, scale it, prepare affine map and display it
+            (garbage-collecting previous displays if any!)
+            if no images, just clean the canvas
+        '''
+        if self.image.loadedImage is None:
+            print 'LoadedImage was none: clean this'
+        else:
+            # find scale factor
+            cvSize=(self.picCanvas.winfo_width(),self.picCanvas.winfo_height())
+            self.image.scaleFactor=findRescaleFactor(self.image.loadedImage.size,cvSize)
+            print 'sf=%f' % self.image.scaleFactor
+            # set affine map
+            self.picCanvas.setMap(createAffineMap(self.image.scaleFactor,self.image.scaleFactor))
+            # rescale pic, show it
+
+    def refreshWindowTitle(self):
+        self.master.title('Skanfixer - %s (%i/%i)' % (self.image.loadedFileName,
+            self.image.loadedFileIndex+1,
+            len(self.image.imageList)))
 
     def funExit(self):
         self.master.quit()
@@ -141,23 +172,24 @@ class sfMain():
                 'r' = rectangle [general, any part of outline], (rectangle,distance2)
             TODO: this will return a dict with all types of match in any case (or empty)
         '''
+        actualDistance=settings['MIN_NEARCLICK_DISTANCE']*self.image.scaleFactor
         # try and pick the nearest corner among all rectangles
         if len(self.rectangles)>0:
             possibleCorners=[(rec,rec.nearestCorner(point)) for rec in self.rectangles]
             closestCorner=sorted(possibleCorners,key=lambda p: p[1][1])[0]
-            if math.sqrt(closestCorner[1][1]) <= settings['MIN_NEARCLICK_DISTANCE']:
+            if math.sqrt(closestCorner[1][1]) <= actualDistance:
                 return ('c',closestCorner)
         # here should take care of side-edits
         if len(self.rectangles)>0:
             possibleMidpoints=[(rec,rec.nearestMidpoint(point)) for rec in self.rectangles]
             closestMidpoint=sorted(possibleMidpoints,key=lambda p:p[1][1])[0]
-            if math.sqrt(closestMidpoint[1][1]) <= settings['MIN_NEARCLICK_DISTANCE']:
+            if math.sqrt(closestMidpoint[1][1]) <= actualDistance:
                 return ('s',closestMidpoint)
         # here just look for a close rectangle in its whole outline
         if len(self.rectangles)>0:
             possibleRectangles=[(rec,rec.anywhereDistance(point)) for rec in self.rectangles]
             closestRectangle=sorted(possibleRectangles,key=lambda p: p[1])[0]
-            if math.sqrt(closestRectangle[1]) <= settings['MIN_NEARCLICK_DISTANCE']:
+            if math.sqrt(closestRectangle[1]) <= actualDistance:
                 return ('r',closestRectangle)
         # finally, if all else fails
         return None
@@ -168,6 +200,10 @@ class sfMain():
         self.rectangles=[]
         self.edit.targetRectangle=None
         self.edit.status=emINERT
+
+    def refreshRectangles(self):
+        for qRecta in self.rectangles:
+            qRecta.refreshDisplay()
 
     def canvasClick(self,event,button):
         evPoint=self.picCanvas.mapper(event)
@@ -245,7 +281,10 @@ class sfMain():
                 closeThing[1][0].setColor(settings['COLOR']['SELECTABLE'])
 
     def canvasConfigure(self,event):
-        print 'CONFIGURE %i,%i' % (event.width,event.height)
+        print 'CONFIGURE %i,%i (%i,%i)' % (event.width,event.height,
+            self.picCanvas.winfo_width(),self.picCanvas.winfo_height())
+        self.refreshCanvas()
+        self.refreshRectangles()
         pass
 
 def main():
