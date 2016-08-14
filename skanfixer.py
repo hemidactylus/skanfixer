@@ -21,7 +21,10 @@ from sfRectangle import sfRectangle
 from sfCanvas import sfCanvas
 from sfAffineMaps import createAffineMap
 from sfSettings import settings
-from sfUtilities import popItem
+from sfUtilities import (
+                            popItem,
+                            listImageFiles,
+                        )
 
 class sfMain():
 
@@ -63,6 +66,12 @@ class sfMain():
         self.controlPanel=tk.Frame(self.master)
         self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
         self.quitButton.pack(side=tk.LEFT)
+        self.shiftButtons=[
+            tk.Button(self.controlPanel,text='<<',command=lambda: self.funBrowse(delta=-1)),
+            tk.Button(self.controlPanel,text='>>',command=lambda: self.funBrowse(delta=+1)),
+        ]
+        for sB in self.shiftButtons:
+            sB.pack(side=tk.LEFT)
         self.doButton=tk.Button(self.controlPanel,fg='blue',text='DEBUG',command=self.doButton)
         self.doButton.pack(side=tk.LEFT)
         self.controlPanel.pack(side=tk.TOP)
@@ -85,6 +94,31 @@ class sfMain():
         self.picCanvas.bind('<Configure>',self.canvasConfigure)
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
+
+        # directory/images part
+        class fileHandlingInfo():
+            directory=os.getcwd()
+            imageList=listImageFiles(directory)
+            loadedFileIndex=None
+
+        self.image=fileHandlingInfo()
+        print self.image.imageList
+        if self.image.imageList:
+            self.loadImage(0)
+
+    def funBrowse(self,delta):
+        nImages=len(self.image.imageList)
+        if nImages>0:
+            if self.image.loadedFileIndex is None:
+                self.loadImage(0)
+            else:
+                self.loadImage((self.image.loadedFileIndex+delta+nImages)%nImages)
+
+    def loadImage(self,nIndex):
+        self.image.loadedFileIndex=nIndex
+        print self.image.imageList[nIndex]
+        self.master.title('Skanfixer - %s (%i/%i)' % (self.image.imageList[nIndex],nIndex+1,len(self.image.imageList)))
+        self.clearRectangles()
 
     def funExit(self):
         self.master.quit()
@@ -127,6 +161,13 @@ class sfMain():
                 return ('r',closestRectangle)
         # finally, if all else fails
         return None
+
+    def clearRectangles(self):
+        for qRecta in self.rectangles:
+            qRecta.disappear()
+        self.rectangles=[]
+        self.edit.targetRectangle=None
+        self.edit.status=emINERT
 
     def canvasClick(self,event,button):
         evPoint=self.picCanvas.mapper(event)
