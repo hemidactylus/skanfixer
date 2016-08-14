@@ -85,14 +85,14 @@ class sfMain():
         self.picCanvas.setMap(createAffineMap())
         self.canvasMap[self.picCanvas.sfTag]=self.picCanvas
         # bindings for events on the canvas window
-        self.picCanvas.bind('<Button-1>',lambda ev: self.canvasClick(ev,button=1))
-        self.picCanvas.bind('<Button-2>',lambda ev: self.canvasClick(ev,button=2))
-        self.picCanvas.bind('<Button-3>',lambda ev: self.canvasClick(ev,button=3))
-        self.picCanvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1))
-        self.picCanvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2))
-        self.picCanvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3))
-        self.picCanvas.bind('<Motion>',self.canvasMotion)
-        self.picCanvas.bind('<Configure>',self.canvasConfigure)
+        self.picCanvas.bind('<Button-1>',lambda ev: self.canvasClick(ev,button=1,canvas=self.picCanvas))
+        self.picCanvas.bind('<Button-2>',lambda ev: self.canvasClick(ev,button=2,canvas=self.picCanvas))
+        self.picCanvas.bind('<Button-3>',lambda ev: self.canvasClick(ev,button=3,canvas=self.picCanvas))
+        self.picCanvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=self.picCanvas))
+        self.picCanvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=self.picCanvas))
+        self.picCanvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=self.picCanvas))
+        self.picCanvas.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=self.picCanvas))
+        self.picCanvas.bind('<Configure>',lambda ev: self.canvasConfigure(ev,canvas=self.picCanvas))
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
 
@@ -103,7 +103,9 @@ class sfMain():
             loadedFileIndex=None
             loadedFileName=None
             loadedImage=None
-            scaleFactor=1.0
+            shownImage=None
+            tkShownImage=None
+            drawnImageIDs={}
 
         self.image=imageHandlingInfo()
         print self.image.imageList
@@ -129,6 +131,11 @@ class sfMain():
         self.clearRectangles()
         self.refreshWindowTitle()
 
+    def cleanMainImage(self):
+        if self.picCanvas.sfTag in self.image.drawnImageIDs:
+            self.picCanvas.delete(self.image.drawnImageIDs[self.picCanvas.sfTag])
+            del self.image.drawnImageIDs[self.picCanvas.sfTag]
+
     def refreshCanvas(self):
         '''
             if there's an image loaded, scale it, prepare affine map and display it
@@ -140,12 +147,20 @@ class sfMain():
         else:
             # find scale factor
             cvSize=(self.picCanvas.winfo_width(),self.picCanvas.winfo_height())
-            self.image.scaleFactor=findRescaleFactor(self.image.loadedImage.size,cvSize)
-            print 'sf=%f' % self.image.scaleFactor
+            scaleFactor=findRescaleFactor(self.image.loadedImage.size,cvSize)
+            print 'sf=%f' % scaleFactor
             # set affine map
-            self.picCanvas.setMap(createAffineMap(self.image.scaleFactor,self.image.scaleFactor))
+            self.picCanvas.setMap(createAffineMap(scaleFactor,scaleFactor))
             # rescale pic, show it
-            print 'Should set up the pic layer and remove the previous one'
+            self.cleanMainImage()
+            shownSize=tuple(int(ldDim / scaleFactor) for ldDim in self.image.loadedImage.size)
+            print 'shownSize:', shownSize
+            self.image.shownImage=self.image.loadedImage.resize(shownSize, Image.ANTIALIAS)
+            # make the tour through PIL to show image and so on
+            self.image.tkShownImage=ImageTk.PhotoImage(self.image.shownImage)
+            self.image.drawnImageIDs[self.picCanvas.sfTag]= \
+                self.picCanvas.create_image(0,0,anchor=tk.NW,image=self.image.tkShownImage)
+            #
             self.refreshRectangles()
 
     def refreshWindowTitle(self):
@@ -168,7 +183,7 @@ class sfMain():
             for c in r.corners():
                 print '    ', c
 
-    def findCloseThing(self,point):
+    def findCloseThing(self,point,canvas):
         '''
             determines if a point is close enough to a 'thing' (corner, ...)
             that a click there is tied to editing that 'thing'
@@ -179,24 +194,24 @@ class sfMain():
                 'r' = rectangle [general, any part of outline], (rectangle,distance2)
             TODO: this will return a dict with all types of match in any case (or empty)
         '''
-        actualDistance=settings['MIN_NEARCLICK_DISTANCE']*self.image.scaleFactor
+        minDistance=settings['MIN_NEARCLICK_DISTANCE']
         # try and pick the nearest corner among all rectangles
         if len(self.rectangles)>0:
-            possibleCorners=[(rec,rec.nearestCorner(point)) for rec in self.rectangles]
+            possibleCorners=[(rec,rec.nearestCorner(point,canvas.mapper)) for rec in self.rectangles]
             closestCorner=sorted(possibleCorners,key=lambda p: p[1][1])[0]
-            if math.sqrt(closestCorner[1][1]) <= actualDistance:
+            if math.sqrt(closestCorner[1][1]) <= minDistance:
                 return ('c',closestCorner)
         # here should take care of side-edits
         if len(self.rectangles)>0:
-            possibleMidpoints=[(rec,rec.nearestMidpoint(point)) for rec in self.rectangles]
+            possibleMidpoints=[(rec,rec.nearestMidpoint(point,canvas.mapper)) for rec in self.rectangles]
             closestMidpoint=sorted(possibleMidpoints,key=lambda p:p[1][1])[0]
-            if math.sqrt(closestMidpoint[1][1]) <= actualDistance:
+            if math.sqrt(closestMidpoint[1][1]) <= minDistance:
                 return ('s',closestMidpoint)
         # here just look for a close rectangle in its whole outline
         if len(self.rectangles)>0:
-            possibleRectangles=[(rec,rec.anywhereDistance(point)) for rec in self.rectangles]
+            possibleRectangles=[(rec,rec.anywhereDistance(point,canvas.mapper)) for rec in self.rectangles]
             closestRectangle=sorted(possibleRectangles,key=lambda p: p[1])[0]
-            if math.sqrt(closestRectangle[1]) <= actualDistance:
+            if math.sqrt(closestRectangle[1]) <= minDistance:
                 return ('r',closestRectangle)
         # finally, if all else fails
         return None
@@ -212,18 +227,19 @@ class sfMain():
         for qRecta in self.rectangles:
             qRecta.refreshDisplay()
 
-    def canvasClick(self,event,button):
-        evPoint=self.picCanvas.mapper(event)
+    def canvasClick(self,event,button,canvas):
+        evPoint=canvas.mapper(event)
         if self.edit.status==emINERT:
             if button==1:
-                closeThing=self.findCloseThing(evPoint)
+                closeThing=self.findCloseThing(evPoint,canvas)
                 if closeThing is None:
                     newRe=sfRectangle(evPoint,evPoint,canvasMap=self.canvasMap,color=settings['COLOR']['EDITING'])
                     newRe.decorate('handle','c',0)
-                    newRe.registerCanvas('mainView')
+                    newRe.registerCanvas(canvas.sfTag)
                     self.rectangles.append(newRe)
                     self.edit.targetRectangle=newRe
                     self.edit.targetPoint=0
+                    self.edit.undoRectangle=None
                     self.edit.status=emEDITCORNER
                 elif closeThing[0] in ['c','s']:
                     if closeThing[0]=='c':
@@ -235,39 +251,40 @@ class sfMain():
                     self.edit.targetRectangle.setColor(settings['COLOR']['EDITING'])
                     self.edit.undoRectangle=self.edit.targetRectangle.bareCopy()
             elif button==3:
-                closeThing=self.findCloseThing(evPoint)
+                closeThing=self.findCloseThing(evPoint,canvas)
                 if closeThing is None:
                     pass
                 elif closeThing[0]=='c' or closeThing[0]=='r' or closeThing[0]=='s':
                     closeThing[1][0].disappear()
                     popItem(self.rectangles,closeThing[1][0])
-                    self.canvasMotion(event)
+                    self.canvasMotion(event,canvas)
         elif self.edit.status==emEDITCORNER or self.edit.status==emEDITSIDE:
             if button==1:
                 self.edit.targetRectangle.setColor(settings['COLOR']['INERT'])
                 self.edit.status=emINERT
-                self.canvasMotion(event)
+                self.edit.undoRectangle=None
+                self.canvasMotion(event,canvas)
             elif button==3:
                 self.edit.targetRectangle.disappear()
                 popItem(self.rectangles,self.edit.targetRectangle)
                 # if possible, just undo currently-edited rectangle to former state
                 if self.edit.undoRectangle is not None:
                     self.edit.undoRectangle.setColor(settings['COLOR']['INERT'])
-                    self.edit.undoRectangle.registerCanvas('mainView')
+                    self.edit.undoRectangle.registerCanvas(canvas.sfTag)
                     self.rectangles.append(self.edit.undoRectangle)
                     self.edit.undoRectangle=None
                 self.edit.targetRectangle=None
                 self.edit.status=emINERT
-                self.canvasMotion(event)
+                self.canvasMotion(event,canvas)
         else:
             raise ValueError('self.edit.status')
         print 'rectangles = %i' % len(self.rectangles)
 
-    def canvasRelease(self,event,button):
-        evPoint=self.picCanvas.mapper(event)
+    def canvasRelease(self,event,button,canvas):
+        evPoint=canvas.mapper(event)
 
-    def canvasMotion(self,event):
-        evPoint=self.picCanvas.mapper(event)
+    def canvasMotion(self,event,canvas):
+        evPoint=canvas.mapper(event)
         self.edit.cursorPos=evPoint
         #print self.edit.cursorPos
         if self.edit.status==emEDITCORNER:
@@ -279,7 +296,7 @@ class sfMain():
             for qRec in self.rectangles:
                 qRec.setColor(settings['COLOR']['INERT'])
                 qRec.undecorate('handle')
-            closeThing=self.findCloseThing(evPoint)
+            closeThing=self.findCloseThing(evPoint,canvas)
             if closeThing is not None:
                 if closeThing[0]=='c':
                     closeThing[1][0].decorate('handle','c',closeThing[1][1][0])
@@ -287,12 +304,11 @@ class sfMain():
                     closeThing[1][0].decorate('handle','s',closeThing[1][1][0])
                 closeThing[1][0].setColor(settings['COLOR']['SELECTABLE'])
 
-    def canvasConfigure(self,event):
+    def canvasConfigure(self,event,canvas):
         print 'CONFIGURE %i,%i (%i,%i)' % (event.width,event.height,
-            self.picCanvas.winfo_width(),self.picCanvas.winfo_height())
+            canvas.winfo_width(),canvas.winfo_height())
         self.refreshCanvas()
         self.refreshRectangles()
-        pass
 
 def main():
 

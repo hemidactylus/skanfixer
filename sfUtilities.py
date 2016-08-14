@@ -10,7 +10,7 @@ def listImageFiles(nDir):
     '''
         Builds a list of image files for a given directory
     '''
-    return [fN for fN in os.listdir(nDir) if isPicture(fN)]
+    return sorted([fN for fN in os.listdir(nDir) if isPicture(fN)])
 
 def isPicture(filename):
     '''

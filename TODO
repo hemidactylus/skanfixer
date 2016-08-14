@@ -1,9 +1,7 @@
 TO DO, minors
-    * Affine maps, seriously
     * Picture loading
     * Pic browsing
     * Handle additional shift of the zoom window to avoid unreachable borders
-    * If right click while in editing, undo edit (?) and not delete recta
 
 PROPOSALS
     * button held for one sec to activate zoom win

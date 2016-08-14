@@ -48,33 +48,40 @@ class sfRectangle():
         '''
         return [sfPoint(self.srcPoints[ix]['x'],self.srcPoints[iy]['y'],) for ix,iy in XY_IND_SEQ]
 
-    def nearestCorner(self,oPoint):
+    def nearestCorner(self,oPoint,mapper=None):
         '''
             returns a 2-uple (index,distance2) of the corner (out of four)
             which is closest to the provided point
         '''
-        pDistances=[oPoint.distance2(corner) for corner in self.corners()]
+        if mapper is None:
+            mapper=createAffineMap()
+        pDistances=[oPoint.distance2(corner,mapper) for corner in self.corners()]
         return sorted(enumerate(pDistances),key=lambda x: x[1])[0]
 
-    def nearestMidpoint(self,oPoint):
+    def nearestMidpoint(self,oPoint,mapper=None):
         '''
             returns a 2-uple (index,distance2) of the midpoint (out of four, indexed
             as n -> between points n and (n+1)%4)
             which is closest to the provided point
         '''
+        if mapper is None:
+            mapper=createAffineMap()
         sCorners=list(self.corners())
-        mDistances=[oPoint.distance2(corner1.midpoint(corner2)) for corner1,corner2 in zip(sCorners,sCorners[1:]+sCorners[0:1])]
+        mDistances=[oPoint.distance2(corner1.midpoint(corner2),mapper)
+            for corner1,corner2 in zip(sCorners,sCorners[1:]+sCorners[0:1])]
         return sorted(enumerate(mDistances),key=lambda x: x[1])[0]
 
-    def anywhereDistance(self,oPoint):
+    def anywhereDistance(self,oPoint,mapper=None):
         '''
             returns a 'distance to rectangle', defined as the min distance
             between any point on the rectangle outline and the given oPoint
         '''
+        if mapper is None:
+            mapper=createAffineMap()
         cCorners=list(self.corners())
         distances=[]
         for cSegment in zip(cCorners,cCorners[1:]+cCorners[0:1]):
-            distances.append(oPoint.distanceToAxisSegment(cSegment))
+            distances.append(oPoint.distanceToAxisSegment(cSegment,mapper))
         return min(distances)
 
     def sortedTuple(self):
