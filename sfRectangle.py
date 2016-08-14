@@ -84,11 +84,14 @@ class sfRectangle():
             distances.append(oPoint.distanceToAxisSegment(cSegment,mapper))
         return min(distances)
 
-    def sortedTuple(self):
+    def sortedTuple(self,integer=False):
         '''
             returns a 4-item tuple of sorted (x_min,y_min,x_max,y_max) values for use with Canvas.create_rectangle
         '''
-        return tuple([fun([pt[dim] for pt in self.srcPoints]) for fun in [min,max] for dim in ['x','y']])
+        if integer:
+            return tuple([int(fun([pt[dim] for pt in self.srcPoints])) for fun in [min,max] for dim in ['x','y']])
+        else:
+            return tuple([fun([pt[dim] for pt in self.srcPoints]) for fun in [min,max] for dim in ['x','y']])
 
     def decorate(self,tag,decType,decIndex):
         '''

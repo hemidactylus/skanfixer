@@ -73,6 +73,8 @@ class sfMain():
         ]
         for sB in self.shiftButtons:
             sB.pack(side=tk.LEFT)
+        self.saveButton=tk.Button(self.controlPanel,text='Save',command=self.funSave)
+        self.saveButton.pack(side=tk.LEFT)
         self.doButton=tk.Button(self.controlPanel,fg='blue',text='DEBUG',command=self.doButton)
         self.doButton.pack(side=tk.LEFT)
         self.controlPanel.pack(side=tk.TOP)
@@ -111,6 +113,13 @@ class sfMain():
         print self.image.imageList
         if self.image.imageList:
             self.loadImage(0)
+
+    def funSave(self):
+        for qInd,qRecta in enumerate(self.rectangles):
+            print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles))
+            clippedImage=self.image.loadedImage.crop(qRecta.sortedTuple(integer=True))
+            clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
+        print 'Done.'
 
     def funBrowse(self,delta):
         nImages=len(self.image.imageList)
