@@ -96,6 +96,9 @@ class sfMain():
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
 
+        # application-level key-press bind
+        self.picCanvas.bind_all('<KeyPress>',self.funKeyPress)
+
         # directory/images part
         class imageHandlingInfo():
             directory=os.getcwd()
@@ -112,6 +115,37 @@ class sfMain():
         print self.image.imageList
         if self.image.imageList:
             self.loadImage(0)
+
+    def funKeyPress(self,event):
+        '''
+            This reacts to some keyboard shortcuts: useful keycodes are
+                * <ESC> = 9
+                * <right> = 114
+                * <left> = 113
+                R = 27
+                L = 46
+                * Z = 52
+                X = 53
+                <backspace> = 22
+        '''
+        if event.keycode == 9:
+            self.deleteZoomOverlay()
+            return
+        if event.keycode == 52:
+            if 'zoomView' not in self.canvasMap:
+                # reverse the cursor pos to a in-pic position
+                _revPos=self.picCanvas.mapper(self.edit.cursorPos,'r')
+                self.createZoomOverlay(_revPos,self.picCanvas.mapper)
+            else:
+                self.deleteZoomOverlay()
+            return
+        if event.keycode == 113:
+            self.funBrowse(delta=-1)
+            return
+        if event.keycode == 114:
+            self.funBrowse(delta=+1)
+            return
+        print 'KP %s' % event.keycode
 
     def funSave(self):
         for qInd,qRecta in enumerate(self.rectangles):
