@@ -92,13 +92,6 @@ class sfMain():
         self.canvasMap[self.picCanvas.sfTag]=self.picCanvas
         # bindings for events on the canvas window
         self._bindMouse(self.picCanvas)
-        # self.picCanvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=self.picCanvas))
-        # self.picCanvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=self.picCanvas))
-        # self.picCanvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=self.picCanvas))
-        # self.picCanvas.bind('<ButtonPress-1>',lambda ev: self.canvasMouseDown(ev,button=1,canvas=self.picCanvas))
-        # self.picCanvas.bind('<ButtonPress-2>',lambda ev: self.canvasMouseDown(ev,button=2,canvas=self.picCanvas))
-        # self.picCanvas.bind('<ButtonPress-3>',lambda ev: self.canvasMouseDown(ev,button=3,canvas=self.picCanvas))
-        # self.picCanvas.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=self.picCanvas))
         self.picCanvas.bind('<Configure>',lambda ev: self.canvasConfigure(ev,canvas=self.picCanvas))
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
@@ -111,6 +104,7 @@ class sfMain():
             loadedFileName=None
             loadedImage=None
             shownImage=None
+            zoomImage=None
             tkShownImage=None
             drawnImageIDs={}
 
@@ -250,6 +244,7 @@ class sfMain():
             canvCentre = actual coords in the (picCanvas) main view
             imgCentre = corresponding coords in picture real 'external' units
         '''
+        self.deleteZoomOverlay()
         canvCentre=sfPoint(canvCentreEvent.x,canvCentreEvent.y)
         print 'Create Z O'
         # delete previous zoom if any
@@ -261,13 +256,6 @@ class sfMain():
             width=zwWidth,height=zwHeight)
         # bind events to zoom frame
         self._bindMouse(self.picZoom)
-            # self.picZoom.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=self.picZoom))
-            # self.picZoom.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=self.picZoom))
-            # self.picZoom.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=self.picZoom))
-            # self.picZoom.bind('<ButtonPress-1>',lambda ev: self.canvasMouseDown(ev,button=1,canvas=self.picZoom))
-            # self.picZoom.bind('<ButtonPress-2>',lambda ev: self.canvasMouseDown(ev,button=2,canvas=self.picZoom))
-            # self.picZoom.bind('<ButtonPress-3>',lambda ev: self.canvasMouseDown(ev,button=3,canvas=self.picZoom))
-            # self.picZoom.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=self.picZoom))
         # register zoom canvas in canvas map
         self.canvasMap[self.picZoom.sfTag]=self.picZoom
         # determine zoom position and affine map
@@ -284,10 +272,25 @@ class sfMain():
             imgCentre.shift(0.5*settings['ZOOM']['IMAGE_WIDTH'],
                 0.5*settings['ZOOM']['IMAGE_HEIGHT']),{}).sortedTuple(integer=True)
         print _imgClipRegion
-        self.zoomImage=ImageTk.PhotoImage(self.image.loadedImage.crop(_imgClipRegion).resize((zwWidth,zwHeight),Image.NEAREST))
-        self.picZoom.create_image(0,0,anchor=tk.NW,image=self.zoomImage)
+        self.image.zoomImage=ImageTk.PhotoImage(self.image.loadedImage.crop(_imgClipRegion).resize((zwWidth,zwHeight),Image.NEAREST))
+        self.image.drawnImageIDs[self.picZoom.sfTag]= \
+            self.picZoom.create_image(0,0,anchor=tk.NW,image=self.image.zoomImage)
         self.picZoom.place(x=_zoomNWCorner['x'],y=_zoomNWCorner['y'])
-        # trigger redraw for all rectangles
+        # register and trigger redraw for all rectangles
+        for qRecta in self.rectangles:
+            for sfTag in self.canvasMap:
+                qRecta.registerCanvas(sfTag)
+
+    def deleteZoomOverlay(self):
+        if self.picZoom:
+            self.image.zoomImage=None
+            for qRecta in self.rectangles:
+                qRecta.deregisterCanvas(self.picZoom.sfTag)
+            self.picZoom.delete(self.image.drawnImageIDs[self.picZoom.sfTag])
+            del self.image.drawnImageIDs[self.picZoom.sfTag]
+            del self.canvasMap[self.picZoom.sfTag]
+            self.picZoom.destroy()
+            self.picZoom=None
 
     def _bindMouse(self,canvas):
         '''
@@ -303,17 +306,18 @@ class sfMain():
 
     def canvasClick(self,event,button,canvas):
         evPoint=canvas.mapper(event)
-        # determine if 'long' press or 'short' press
+        # If it's a 'long click' the zoom overlay pops up
         if time()-self.edit.buttonTime > (settings['MOUSE_TIMING']['LONG_CLICK_TIME_MS']/1000.0):
             self.createZoomOverlay(event,evPoint)
-        #
+        # handle cases depending on button pressed and previous rectangle-edit status
         if self.edit.status==emINERT:
             if button==1:
                 closeThing=self.findCloseThing(evPoint,canvas)
                 if closeThing is None:
                     newRe=sfRectangle(evPoint,evPoint,canvasMap=self.canvasMap,color=settings['COLOR']['EDITING'])
                     newRe.decorate('handle','c',0)
-                    newRe.registerCanvas(canvas.sfTag)
+                    for sfTag in self.canvasMap:
+                        newRe.registerCanvas(sfTag)
                     self.rectangles.append(newRe)
                     self.edit.targetRectangle=newRe
                     self.edit.targetPoint=0
@@ -348,15 +352,19 @@ class sfMain():
                 # if possible, just undo currently-edited rectangle to former state
                 if self.edit.undoRectangle is not None:
                     self.edit.undoRectangle.setColor(settings['COLOR']['INERT'])
-                    self.edit.undoRectangle.registerCanvas(canvas.sfTag)
+                    for sfTag in self.canvasMap:
+                        self.edit.undoRectangle.registerCanvas(sfTag)
                     self.rectangles.append(self.edit.undoRectangle)
                     self.edit.undoRectangle=None
                 self.edit.targetRectangle=None
                 self.edit.status=emINERT
                 self.canvasMotion(event,canvas)
+            self.deleteZoomOverlay()
         else:
             raise ValueError('self.edit.status')
         print 'rectangles = %i' % len(self.rectangles)
+        for qInd,qRecta in enumerate(self.rectangles):
+            print '  r(%i): canvases=%s' % (qInd,','.join(qRecta.boundCanvases))
 
     def canvasRelease(self,event,button,canvas):
         # mouse button released --> a 'click' operation is triggered

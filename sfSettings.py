@@ -13,8 +13,8 @@ settings={
     'ZOOM': {
         'FACTOR_X': 4,
         'FACTOR_Y': 4,
-        'IMAGE_WIDTH': 80,
-        'IMAGE_HEIGHT': 80,
+        'IMAGE_WIDTH': 60,
+        'IMAGE_HEIGHT': 60,
     },
     'COLOR': {
         'EDITING': 'red',

@@ -1,12 +1,11 @@
 TO DO, minors
-    * Picture loading
-    * Pic browsing
+    * Pic browsing with choose-directory
     * Handle additional shift of the zoom window to avoid unreachable borders
 
 PROPOSALS
-    * button held for one sec to activate zoom win
     * shortcut key to set rotation angle
     * shortcut key to set clip name
+    * shortcut keys to mirror some mouse operations
 
 TO DO, majors
     * suggested rectangleness
