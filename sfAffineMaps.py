@@ -7,7 +7,6 @@
 
 from sfPoint import sfPoint
 
-# temp version
 def createAffineMap(factorX=1.0, factorY=1.0, deltaX=0.0, deltaY=0.0):
     _fx=float(factorX)
     _fy=float(factorY)

@@ -14,6 +14,7 @@ import Tkinter as tk
 from PIL import Image, ImageTk
 import os
 import math
+from time import time
 
 # skanfixer imports
 from sfPoint import sfPoint
@@ -53,6 +54,8 @@ class sfMain():
             targetRectangle=None
             targetPoint=0
             undoRectangle=None
+            buttonPressed=None
+            buttonTime=None
 
         # setting up the data members
         self.rectangles=[]
@@ -81,19 +84,21 @@ class sfMain():
 
         # this window's own canvas map, to be used by rectangles
         self.canvasMap={}
+        self.picZoom=None
 
         # canvas the image is shown in, with its additional features
         self.picCanvas=sfCanvas(self.master,sfTag='mainView',width=180,height=180)
         self.picCanvas.setMap(createAffineMap())
         self.canvasMap[self.picCanvas.sfTag]=self.picCanvas
         # bindings for events on the canvas window
-        self.picCanvas.bind('<Button-1>',lambda ev: self.canvasClick(ev,button=1,canvas=self.picCanvas))
-        self.picCanvas.bind('<Button-2>',lambda ev: self.canvasClick(ev,button=2,canvas=self.picCanvas))
-        self.picCanvas.bind('<Button-3>',lambda ev: self.canvasClick(ev,button=3,canvas=self.picCanvas))
-        self.picCanvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=self.picCanvas))
-        self.picCanvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=self.picCanvas))
-        self.picCanvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=self.picCanvas))
-        self.picCanvas.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=self.picCanvas))
+        self._bindMouse(self.picCanvas)
+        # self.picCanvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=self.picCanvas))
+        # self.picCanvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=self.picCanvas))
+        # self.picCanvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=self.picCanvas))
+        # self.picCanvas.bind('<ButtonPress-1>',lambda ev: self.canvasMouseDown(ev,button=1,canvas=self.picCanvas))
+        # self.picCanvas.bind('<ButtonPress-2>',lambda ev: self.canvasMouseDown(ev,button=2,canvas=self.picCanvas))
+        # self.picCanvas.bind('<ButtonPress-3>',lambda ev: self.canvasMouseDown(ev,button=3,canvas=self.picCanvas))
+        # self.picCanvas.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=self.picCanvas))
         self.picCanvas.bind('<Configure>',lambda ev: self.canvasConfigure(ev,canvas=self.picCanvas))
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
@@ -236,8 +241,72 @@ class sfMain():
         for qRecta in self.rectangles:
             qRecta.refreshDisplay()
 
+    def canvasMouseDown(self,event,button,canvas):
+        self.edit.buttonPressed=button
+        self.edit.buttonTime=time()
+
+    def createZoomOverlay(self,canvCentreEvent,imgCentre):
+        '''
+            canvCentre = actual coords in the (picCanvas) main view
+            imgCentre = corresponding coords in picture real 'external' units
+        '''
+        canvCentre=sfPoint(canvCentreEvent.x,canvCentreEvent.y)
+        print 'Create Z O'
+        # delete previous zoom if any
+        print 'SHOULD DEL PREV ZOOM'
+        # create zoom sfCanvas
+        zwWidth=settings['ZOOM']['IMAGE_WIDTH']*settings['ZOOM']['FACTOR_X']
+        zwHeight=settings['ZOOM']['IMAGE_HEIGHT']*settings['ZOOM']['FACTOR_Y']
+        self.picZoom=sfCanvas(self.picCanvas,sfTag='zoomView',
+            width=zwWidth,height=zwHeight)
+        # bind events to zoom frame
+        self._bindMouse(self.picZoom)
+            # self.picZoom.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=self.picZoom))
+            # self.picZoom.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=self.picZoom))
+            # self.picZoom.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=self.picZoom))
+            # self.picZoom.bind('<ButtonPress-1>',lambda ev: self.canvasMouseDown(ev,button=1,canvas=self.picZoom))
+            # self.picZoom.bind('<ButtonPress-2>',lambda ev: self.canvasMouseDown(ev,button=2,canvas=self.picZoom))
+            # self.picZoom.bind('<ButtonPress-3>',lambda ev: self.canvasMouseDown(ev,button=3,canvas=self.picZoom))
+            # self.picZoom.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=self.picZoom))
+        # register zoom canvas in canvas map
+        self.canvasMap[self.picZoom.sfTag]=self.picZoom
+        # determine zoom position and affine map
+        _fx=1.0/settings['ZOOM']['FACTOR_X']
+        _fy=1.0/settings['ZOOM']['FACTOR_Y']
+        _dx=imgCentre['x']-0.5*_fx*zwWidth
+        _dy=imgCentre['y']-0.5*_fy*zwHeight
+        self.picZoom.setMap(createAffineMap(_fx,_fy,_dx,_dy))
+        print 'TODO: border cases, bounce to border.'
+        # zoom overlay positioning and display
+        _zoomNWCorner=canvCentre.shift(-0.5*zwWidth,-0.5*zwHeight)
+        _imgClipRegion=sfRectangle(imgCentre.shift(-0.5*settings['ZOOM']['IMAGE_WIDTH'],
+                -0.5*settings['ZOOM']['IMAGE_HEIGHT']),
+            imgCentre.shift(0.5*settings['ZOOM']['IMAGE_WIDTH'],
+                0.5*settings['ZOOM']['IMAGE_HEIGHT']),{}).sortedTuple(integer=True)
+        print _imgClipRegion
+        self.zoomImage=ImageTk.PhotoImage(self.image.loadedImage.crop(_imgClipRegion).resize((zwWidth,zwHeight),Image.NEAREST))
+        self.picZoom.create_image(0,0,anchor=tk.NW,image=self.zoomImage)
+        self.picZoom.place(x=_zoomNWCorner['x'],y=_zoomNWCorner['y'])
+        # trigger redraw for all rectangles
+
+    def _bindMouse(self,canvas):
+        '''
+            performs some click- and motion- standard binds by packaging the canvas nature as well into the calls
+        '''
+        canvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=canvas))
+        canvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=canvas))
+        canvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=canvas))
+        canvas.bind('<ButtonPress-1>',lambda ev: self.canvasMouseDown(ev,button=1,canvas=canvas))
+        canvas.bind('<ButtonPress-2>',lambda ev: self.canvasMouseDown(ev,button=2,canvas=canvas))
+        canvas.bind('<ButtonPress-3>',lambda ev: self.canvasMouseDown(ev,button=3,canvas=canvas))
+        canvas.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=canvas))
+
     def canvasClick(self,event,button,canvas):
         evPoint=canvas.mapper(event)
+        # determine if 'long' press or 'short' press
+        if time()-self.edit.buttonTime > (settings['MOUSE_TIMING']['LONG_CLICK_TIME_MS']/1000.0):
+            self.createZoomOverlay(event,evPoint)
+        #
         if self.edit.status==emINERT:
             if button==1:
                 closeThing=self.findCloseThing(evPoint,canvas)
@@ -290,7 +359,10 @@ class sfMain():
         print 'rectangles = %i' % len(self.rectangles)
 
     def canvasRelease(self,event,button,canvas):
-        evPoint=canvas.mapper(event)
+        # mouse button released --> a 'click' operation is triggered
+        self.canvasClick(event,button,canvas)
+        self.edit.buttonPressed=None
+        self.edit.buttonTime=time()
 
     def canvasMotion(self,event,canvas):
         evPoint=canvas.mapper(event)
