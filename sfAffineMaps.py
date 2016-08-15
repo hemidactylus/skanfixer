@@ -14,7 +14,7 @@ def createAffineMap(factorX=1.0, factorY=1.0, deltaX=0.0, deltaY=0.0):
     _dy=float(deltaY)
     def mapper(qpoint, mode='d'):
         if mode=='d':
-            return sfPoint(qpoint.x*_fx+_dx,qpoint.y*_fy+_dy)
+            return sfPoint((int)(qpoint.x*_fx+_dx),int(qpoint.y*_fy+_dy))
         elif mode=='r':
             return sfPoint((qpoint.x-_dx)/_fx,(qpoint.y-_dy)/_fy)
         else:

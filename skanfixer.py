@@ -185,11 +185,13 @@ class sfMain():
         self.master.quit()
 
     def doButton(self):
-        print 'REKTAs'
-        for r in self.rectangles:
-            print r
-            for c in r.corners():
+        print 'Rectangles'
+        for qInd,qRecta in enumerate(self.rectangles):
+            print '%3i -> %s' % (qInd,qRecta)
+            for c in qRecta.corners():
                 print '    ', c
+            print '     C = %s' % (','.join(qRecta.boundCanvases))
+
 
     def findCloseThing(self,point,canvas):
         '''
@@ -239,19 +241,28 @@ class sfMain():
         self.edit.buttonPressed=button
         self.edit.buttonTime=time()
 
-    def createZoomOverlay(self,canvCentreEvent,imgCentre):
+    def createZoomOverlay(self,canvCentreEvent,mapperToExternal):
         '''
             canvCentre = actual coords in the (picCanvas) main view
             imgCentre = corresponding coords in picture real 'external' units
         '''
-        self.deleteZoomOverlay()
         canvCentre=sfPoint(canvCentreEvent.x,canvCentreEvent.y)
-        print 'Create Z O'
+        imgCentre=mapperToExternal(canvCentre)
         # delete previous zoom if any
-        print 'SHOULD DEL PREV ZOOM'
+        self.deleteZoomOverlay()
         # create zoom sfCanvas
         zwWidth=settings['ZOOM']['IMAGE_WIDTH']*settings['ZOOM']['FACTOR_X']
         zwHeight=settings['ZOOM']['IMAGE_HEIGHT']*settings['ZOOM']['FACTOR_Y']
+        # after adjustments, map the point to external (real-picture) coords
+        _zoomNWCorner=canvCentre.shift(-0.5*zwWidth,-0.5*zwHeight)
+        # bounce on borders: check right- and left- bounce and do the best possible adjustment
+        for _sizeIndex,_sizeName,_winExtent in zip([0,1],['x','y'],[zwWidth,zwHeight]):
+            if _zoomNWCorner[_sizeName]>self.image.shownImage.size[_sizeIndex]-_winExtent: # right-bounce
+                _zoomNWCorner[_sizeName]=self.image.shownImage.size[_sizeIndex]-_winExtent
+            if _zoomNWCorner[_sizeName]<0: # left-bounce
+                _zoomNWCorner[_sizeName]=0
+        _zoomSECorner=_zoomNWCorner.shift(zwWidth,zwHeight)
+        # create zoom overlay
         self.picZoom=sfCanvas(self.picCanvas,sfTag='zoomView',
             width=zwWidth,height=zwHeight)
         # bind events to zoom frame
@@ -264,9 +275,7 @@ class sfMain():
         _dx=imgCentre['x']-0.5*_fx*zwWidth
         _dy=imgCentre['y']-0.5*_fy*zwHeight
         self.picZoom.setMap(createAffineMap(_fx,_fy,_dx,_dy))
-        print 'TODO: border cases, bounce to border.'
         # zoom overlay positioning and display
-        _zoomNWCorner=canvCentre.shift(-0.5*zwWidth,-0.5*zwHeight)
         _imgClipRegion=sfRectangle(imgCentre.shift(-0.5*settings['ZOOM']['IMAGE_WIDTH'],
                 -0.5*settings['ZOOM']['IMAGE_HEIGHT']),
             imgCentre.shift(0.5*settings['ZOOM']['IMAGE_WIDTH'],
@@ -306,14 +315,14 @@ class sfMain():
 
     def canvasClick(self,event,button,canvas):
         evPoint=canvas.mapper(event)
-        # If it's a 'long click' the zoom overlay pops up
-        if time()-self.edit.buttonTime > (settings['MOUSE_TIMING']['LONG_CLICK_TIME_MS']/1000.0):
-            self.createZoomOverlay(event,evPoint)
         # handle cases depending on button pressed and previous rectangle-edit status
         if self.edit.status==emINERT:
             if button==1:
                 closeThing=self.findCloseThing(evPoint,canvas)
                 if closeThing is None:
+                    # If it's a 'long click' the zoom overlay pops up
+                    if time()-self.edit.buttonTime > (settings['MOUSE_TIMING']['LONG_CLICK_TIME_MS']/1000.0):
+                        self.createZoomOverlay(event,canvas.mapper)
                     newRe=sfRectangle(evPoint,evPoint,canvasMap=self.canvasMap,color=settings['COLOR']['EDITING'])
                     newRe.decorate('handle','c',0)
                     for sfTag in self.canvasMap:
@@ -324,6 +333,9 @@ class sfMain():
                     self.edit.undoRectangle=None
                     self.edit.status=emEDITCORNER
                 elif closeThing[0] in ['c','s']:
+                    # If it's a 'long click' the zoom overlay pops up
+                    if time()-self.edit.buttonTime > (settings['MOUSE_TIMING']['LONG_CLICK_TIME_MS']/1000.0):
+                        self.createZoomOverlay(event,canvas.mapper)
                     if closeThing[0]=='c':
                         self.edit.status=emEDITCORNER
                     elif closeThing[0]=='s':
@@ -346,6 +358,8 @@ class sfMain():
                 self.edit.status=emINERT
                 self.edit.undoRectangle=None
                 self.canvasMotion(event,canvas)
+                self.edit.targetRectangle.relimit(sfPoint(0,0),sfPoint(*self.image.loadedImage.size))
+                self.edit.targetRectangle=None
             elif button==3:
                 self.edit.targetRectangle.disappear()
                 popItem(self.rectangles,self.edit.targetRectangle)
@@ -362,9 +376,6 @@ class sfMain():
             self.deleteZoomOverlay()
         else:
             raise ValueError('self.edit.status')
-        print 'rectangles = %i' % len(self.rectangles)
-        for qInd,qRecta in enumerate(self.rectangles):
-            print '  r(%i): canvases=%s' % (qInd,','.join(qRecta.boundCanvases))
 
     def canvasRelease(self,event,button,canvas):
         # mouse button released --> a 'click' operation is triggered

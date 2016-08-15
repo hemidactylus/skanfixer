@@ -35,6 +35,25 @@ class sfRectangle():
             self.color=color
             self.refreshDisplay()
 
+    def relimit(self,pt1,pt2):
+        '''
+            Constrain all coordinates to lie within the range defined by the two arena-delimiting
+            point (ends included)
+        '''
+        _changed=False
+        for pt in self.srcPoints:
+            for qdim in ['x','y']:
+                _minVal=min([spt[qdim] for spt in [pt1,pt2]])
+                _maxVal=max([spt[qdim] for spt in [pt1,pt2]])
+                if pt[qdim] < _minVal:
+                    pt[qdim]=_minVal
+                    _changed=True
+                if pt[qdim] > _maxVal:
+                    _changed=True
+                    pt[qdim]=_maxVal
+        if _changed:
+            self.refreshDisplay()
+
     def __str__(self):
         return 'sfRectangle{%s ; %s}' % (self.srcPoints)
 
