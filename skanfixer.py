@@ -247,7 +247,7 @@ class sfMain():
             self.picCanvas.setMap(createAffineMap(scaleFactor,scaleFactor))
             # rescale pic, show it
             self.cleanMainImage()
-            shownSize=tuple(int(ldDim / scaleFactor) for ldDim in self.image.loadedImage.size)
+            shownSize=tuple(max(int(ldDim / scaleFactor),1) for ldDim in self.image.loadedImage.size)
             if settings['DEBUG']:
                 print 'shownSize:', shownSize
             self.image.shownImage=self.image.loadedImage.resize(shownSize, Image.ANTIALIAS)
