@@ -21,4 +21,5 @@ settings={
         'INERT': 'green',
         'SELECTABLE': 'orange',
     },
+    'DEBUG': True,
 }

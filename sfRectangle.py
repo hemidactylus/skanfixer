@@ -29,6 +29,7 @@ class sfRectangle():
         self.drawingIDs={}
         self.color=color
         self.decorations={}
+        self.label=None
 
     def setColor(self,color='red'):
         if self.color!=color:
@@ -56,6 +57,16 @@ class sfRectangle():
 
     def __str__(self):
         return 'sfRectangle{%s ; %s}' % (self.srcPoints)
+
+    def description(self):
+        '''
+            returns a status-bar-friendly rectangle descriptive text
+        '''
+        _st=self.sortedTuple()
+        _w=int(_st[2]-_st[0])
+        _h=int(_st[3]-_st[1])
+        _l=' "%s"' % self.label if self.label else ''
+        return 'Rectangle%s (%i x %i px)' % (_l,_w,_h)
 
     def bareCopy(self):
         return sfRectangle(self.srcPoints[0],self.srcPoints[1],self.canvasMap)

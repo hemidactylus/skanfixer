@@ -14,6 +14,9 @@ class sfPoint():
     def __repr__(self):
         return self.__str__()
 
+    def intLabel(self):
+        return '%i, %i' % tuple(map(int,(self.x,self.y)))
+
     def asTuple(self):
         return tuple((self.x,self.y))
 

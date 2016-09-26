@@ -11,6 +11,7 @@ emEDITSIDE=2
 
 # standard imports
 import Tkinter as tk
+import tkFileDialog
 from PIL import Image, ImageTk
 import os
 import math
@@ -61,7 +62,8 @@ class sfMain():
         self.rectangles=[]
         self.edit=sfEditStatus()
 
-        print 'Init.'
+        if settings['DEBUG']:
+            print 'Init.'
 
         # Window layout
         self.master=master
@@ -78,13 +80,22 @@ class sfMain():
             sB.pack(side=tk.LEFT)
         self.saveButton=tk.Button(self.controlPanel,text='Save',command=self.funSave)
         self.saveButton.pack(side=tk.LEFT)
-        self.doButton=tk.Button(self.controlPanel,fg='blue',text='DEBUG',command=self.doButton)
-        self.doButton.pack(side=tk.LEFT)
+        self.openDirButton=tk.Button(self.controlPanel,text='Open Dir',command=self.funOpenDir)
+        self.openDirButton.pack(side=tk.LEFT)
+        self.refreshDirButton=tk.Button(self.controlPanel,text='Refresh',command=self.funRefreshDir)
+        self.refreshDirButton.pack(side=tk.LEFT)
+        if settings['DEBUG']:
+            self.doButton=tk.Button(self.controlPanel,fg='blue',text='DEBUG',command=self.doButton)
+            self.doButton.pack(side=tk.LEFT)
         self.controlPanel.pack(side=tk.TOP)
 
         # this window's own canvas map, to be used by rectangles
         self.canvasMap={}
         self.picZoom=None
+
+        # status bar
+        self.statusBar=tk.Label(self.master,text='',bd=1, relief=tk.SUNKEN, anchor=tk.W)
+        self.statusBar.pack(side=tk.BOTTOM, fill=tk.X)
 
         # canvas the image is shown in, with its additional features
         self.picCanvas=sfCanvas(self.master,sfTag='mainView',width=180,height=180)
@@ -98,10 +109,37 @@ class sfMain():
 
         # application-level key-press bind
         self.picCanvas.bind_all('<KeyPress>',self.funKeyPress)
+        self.showMessage('Welcome.')
+        self.refreshImageList(os.getcwd())
 
+    def funOpenDir(self):
+        '''
+            allows opening a directory to work on the contained image files
+        '''
+        newDir = tkFileDialog.askdirectory(parent=self.master, title='Open directory')
+        if newDir is not None:
+            if settings['DEBUG']:
+                print 'NEWDIR -> %s' % newDir
+            self.refreshImageList(newDir)
+
+    def funRefreshDir(self):
+        '''
+            Forces a refresh of the current-dir image list
+            and consequently a reload of the current image
+            (rectangles are lost)
+        '''
+        self.refreshImageList(os.getcwd(),self.image.loadedFileName)
+
+
+    def refreshImageList(self,workdir,prevImageName=None):
+        '''
+            given a work directory, the image list is refreshed
+            and either the first image or the currently-loaded image
+            is re-loaded from the list
+        '''
         # directory/images part
         class imageHandlingInfo():
-            directory=os.getcwd()
+            directory=workdir
             imageList=listImageFiles(directory)
             loadedFileIndex=None
             loadedFileName=None
@@ -112,9 +150,16 @@ class sfMain():
             drawnImageIDs={}
 
         self.image=imageHandlingInfo()
-        print self.image.imageList
+        if settings['DEBUG']:
+            print self.image.imageList
         if self.image.imageList:
-            self.loadImage(0)
+            if prevImageName in self.image.imageList:
+                pairList=zip(self.image.imageList,range(len(self.image.imageList)))
+                imgIndex=filter(lambda p: p[0]==prevImageName,pairList)[0][1]
+                self.loadImage(imgIndex)
+            else:
+                self.loadImage(0)
+        self.refreshWindowTitle()
 
     def funKeyPress(self,event):
         '''
@@ -145,14 +190,17 @@ class sfMain():
         if event.keycode == 114:
             self.funBrowse(delta=+1)
             return
-        print 'KP %s' % event.keycode
+        if settings['DEBUG']:
+            print 'KP %s' % event.keycode
 
     def funSave(self):
         for qInd,qRecta in enumerate(self.rectangles):
-            print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles))
+            if settings['DEBUG']:
+                print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles))
             clippedImage=self.image.loadedImage.crop(qRecta.sortedTuple(integer=True))
             clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
-        print 'Done.'
+        if settings['DEBUG']:
+            print 'Done.'
 
     def funBrowse(self,delta):
         nImages=len(self.image.imageList)
@@ -165,13 +213,15 @@ class sfMain():
     def loadImage(self,nIndex):
         self.image.loadedFileIndex=nIndex
         self.image.loadedFileName=self.image.imageList[nIndex]
-        print self.image.imageList[nIndex]
+        if settings['DEBUG']:
+            print self.image.imageList[nIndex]
         # actual loading
         self.image.loadedImage=Image.open(os.path.join(self.image.directory,self.image.loadedFileName))
         self.refreshCanvas()
         #
         self.clearRectangles()
         self.refreshWindowTitle()
+        self.showMessage('Loaded image %s' % self.image.loadedFileName)
 
     def cleanMainImage(self):
         if self.picCanvas.sfTag in self.image.drawnImageIDs:
@@ -185,18 +235,21 @@ class sfMain():
             if no images, just clean the canvas
         '''
         if self.image.loadedImage is None:
-            print 'LoadedImage was none: clean this'
+            if settings['DEBUG']:
+                print 'LoadedImage was none: clean this'
         else:
             # find scale factor
             cvSize=(self.picCanvas.winfo_width(),self.picCanvas.winfo_height())
             scaleFactor=findRescaleFactor(self.image.loadedImage.size,cvSize)
-            print 'sf=%f' % scaleFactor
+            if settings['DEBUG']:
+                print 'sf=%f' % scaleFactor
             # set affine map
             self.picCanvas.setMap(createAffineMap(scaleFactor,scaleFactor))
             # rescale pic, show it
             self.cleanMainImage()
             shownSize=tuple(int(ldDim / scaleFactor) for ldDim in self.image.loadedImage.size)
-            print 'shownSize:', shownSize
+            if settings['DEBUG']:
+                print 'shownSize:', shownSize
             self.image.shownImage=self.image.loadedImage.resize(shownSize, Image.ANTIALIAS)
             # make the tour through PIL to show image and so on
             self.image.tkShownImage=ImageTk.PhotoImage(self.image.shownImage)
@@ -314,7 +367,8 @@ class sfMain():
                 -0.5*settings['ZOOM']['IMAGE_HEIGHT']),
             imgCentre.shift(0.5*settings['ZOOM']['IMAGE_WIDTH'],
                 0.5*settings['ZOOM']['IMAGE_HEIGHT']),{}).sortedTuple(integer=True)
-        print _imgClipRegion
+        if settings['DEBUG']:
+            print _imgClipRegion
         self.image.zoomImage=ImageTk.PhotoImage(self.image.loadedImage.crop(_imgClipRegion).resize((zwWidth,zwHeight),Image.NEAREST))
         self.image.drawnImageIDs[self.picZoom.sfTag]= \
             self.picZoom.create_image(0,0,anchor=tk.NW,image=self.image.zoomImage)
@@ -349,6 +403,8 @@ class sfMain():
 
     def canvasClick(self,event,button,canvas):
         evPoint=canvas.mapper(event)
+        if self.image.loadedImage is None:
+            return None
         # handle cases depending on button pressed and previous rectangle-edit status
         if self.edit.status==emINERT:
             if button==1:
@@ -417,14 +473,23 @@ class sfMain():
         self.edit.buttonPressed=None
         self.edit.buttonTime=time()
 
+    def showMessage(self, message):
+        '''
+            Sets the provided text into the window status bar as is
+        '''
+        self.statusBar['text']=message
+
     def canvasMotion(self,event,canvas):
         evPoint=canvas.mapper(event)
         self.edit.cursorPos=evPoint
-        #print self.edit.cursorPos
+        descRectangle=None
+
         if self.edit.status==emEDITCORNER:
             self.edit.targetRectangle.dragPoint(self.edit.targetPoint,evPoint)
+            descRectangle=self.edit.targetRectangle
         if self.edit.status==emEDITSIDE:
             self.edit.targetRectangle.dragSide(self.edit.targetPoint,evPoint)
+            descRectangle=self.edit.targetRectangle
         elif self.edit.status==emINERT:
             # temporary coloring of rectangles
             for qRec in self.rectangles:
@@ -437,6 +502,13 @@ class sfMain():
                 if closeThing[0]=='s':
                     closeThing[1][0].decorate('handle','s',closeThing[1][1][0])
                 closeThing[1][0].setColor(settings['COLOR']['SELECTABLE'])
+                descRectangle=closeThing[1][0]
+
+        # status bar        
+        if descRectangle:
+            self.showMessage(descRectangle.description())
+        else:
+            self.showMessage(evPoint.intLabel())
 
     def canvasConfigure(self,event,canvas):
         print 'CONFIGURE %i,%i (%i,%i)' % (event.width,event.height,
