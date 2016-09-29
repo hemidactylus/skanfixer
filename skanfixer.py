@@ -29,6 +29,23 @@ from sfUtilities import (
                             findRescaleFactor,
                         )
 
+# directory/images part of the current status are in this class:
+class imageHandlingInfo():
+    directory=None
+    imageList=None
+    loadedFileIndex=None
+    loadedFileName=None
+    loadedImage=None
+    shownImage=None
+    zoomImage=None
+    tkShownImage=None
+    drawnImageIDs={}
+
+    def __init__(self,workdir):
+        self.directory=workdir
+        self.imageList=listImageFiles(self.directory)
+
+
 class sfMain():
 
     def __init__(self,master):
@@ -43,6 +60,7 @@ class sfMain():
                     - edit.cursorPos:       a (image-coordinate) sfPoint
                     - edit.status:          edit mode (shaping a recta/not)
                     - edit.targetRectangle: if shaping a recta, this is a sfRectangle
+                    - edit.targetRectangle: if mouseovering a rectangle, this is it
                     - edit.targetPoint:     if shaping a recta, this is the grabbed corner/side index
 
                 * rectangles:               a list of rectangles (with their bindings and everything)
@@ -53,6 +71,7 @@ class sfMain():
             cursorPos=sfPoint()
             status=emINERT
             targetRectangle=None
+            hoverRectangle=None
             targetPoint=0
             undoRectangle=None
             buttonPressed=None
@@ -93,6 +112,9 @@ class sfMain():
         self.canvasMap={}
         self.picZoom=None
 
+        # rectangle-label editor
+        self.rectangleLabelText=None
+
         # status bar
         self.statusBar=tk.Label(self.master,text='',bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.statusBar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -107,8 +129,6 @@ class sfMain():
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
 
-        # application-level key-press bind
-        self.picCanvas.bind_all('<KeyPress>',self.funKeyPress)
         self.showMessage('Welcome.')
         self.refreshImageList(os.getcwd())
 
@@ -128,7 +148,7 @@ class sfMain():
             and consequently a reload of the current image
             (rectangles are lost)
         '''
-        self.refreshImageList(os.getcwd(),self.image.loadedFileName)
+        self.refreshImageList(self.image.directory,self.image.loadedFileName)
 
 
     def refreshImageList(self,workdir,prevImageName=None):
@@ -137,19 +157,7 @@ class sfMain():
             and either the first image or the currently-loaded image
             is re-loaded from the list
         '''
-        # directory/images part
-        class imageHandlingInfo():
-            directory=workdir
-            imageList=listImageFiles(directory)
-            loadedFileIndex=None
-            loadedFileName=None
-            loadedImage=None
-            shownImage=None
-            zoomImage=None
-            tkShownImage=None
-            drawnImageIDs={}
-
-        self.image=imageHandlingInfo()
+        self.image=imageHandlingInfo(workdir)
         if settings['DEBUG']:
             print self.image.imageList
         if self.image.imageList:
@@ -171,12 +179,15 @@ class sfMain():
                 L = 46
                 * Z = 52
                 X = 53
+                <Enter> = 36
                 <backspace> = 22
         '''
-        if event.keycode == 9:
+        if settings['DEBUG']:
+            print 'KP %s' % event.keycode
+        if event.keycode == 9:          # <Esc>
             self.deleteZoomOverlay()
             return
-        if event.keycode == 52:
+        if event.keycode == 52:         # Z
             if 'zoomView' not in self.canvasMap:
                 # reverse the cursor pos to a in-pic position
                 _revPos=self.picCanvas.mapper(self.edit.cursorPos,'r')
@@ -184,14 +195,47 @@ class sfMain():
             else:
                 self.deleteZoomOverlay()
             return
-        if event.keycode == 113:
+        if event.keycode == 113:        # <left>
             self.funBrowse(delta=-1)
             return
-        if event.keycode == 114:
+        if event.keycode == 114:        # <right>
             self.funBrowse(delta=+1)
             return
-        if settings['DEBUG']:
-            print 'KP %s' % event.keycode
+        if event.keycode == 46:         # L
+            if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
+                self.showMessage('Type the rectangle label and press Enter')
+                # create a disposable text box
+                self.rectangleLabelText=tk.Entry(self.picCanvas)
+                self.rectangleLabelText.delete(0,tk.END)
+                if self.edit.hoverRectangle.label:
+                    self.rectangleLabelText.insert(0,self.edit.hoverRectangle.label)
+                self.rectangleLabelText.bind('<KeyPress>',self.funLabelKeyPress)
+                self.rectangleLabelText.place(x=self.edit.cursorPos.x,y=self.edit.cursorPos.y)
+
+    def destroyLabelText(self):
+        self.rectangleLabelText.destroy()
+        self.rectangleLabelText=None
+
+    def funLabelKeyPress(self,event):
+        '''
+            this special return value prevents the event from
+            being propagated triggering
+            the upper-level (bind_all) keypress handler
+        '''
+        if event.keycode in [9,36]: # <Esc>, <Enter>
+            if event.keycode==9:
+                newLabel=self.edit.hoverRectangle.label
+            elif event.keycode==36:
+                newLabel=self.rectangleLabelText.get()
+                if len(newLabel)==0:
+                    newLabel=None
+            else:
+                raise ValueError
+            self.destroyLabelText()
+            self.edit.hoverRectangle.label=newLabel
+        if event.keycode == 38:
+            self.rectangleLabelText.insert(tk.INSERT,'a')
+        return 'break'
 
     def funSave(self):
         for qInd,qRecta in enumerate(self.rectangles):
@@ -211,17 +255,20 @@ class sfMain():
                 self.loadImage((self.image.loadedFileIndex+delta+nImages)%nImages)
 
     def loadImage(self,nIndex):
-        self.image.loadedFileIndex=nIndex
-        self.image.loadedFileName=self.image.imageList[nIndex]
-        if settings['DEBUG']:
-            print self.image.imageList[nIndex]
-        # actual loading
-        self.image.loadedImage=Image.open(os.path.join(self.image.directory,self.image.loadedFileName))
-        self.refreshCanvas()
-        #
-        self.clearRectangles()
-        self.refreshWindowTitle()
-        self.showMessage('Loaded image %s' % self.image.loadedFileName)
+        # actual loading + setting the internal variables on it
+        try:
+            self.image.loadedImage=Image.open(os.path.join(self.image.directory,self.image.imageList[nIndex]))
+            self.image.loadedFileIndex=nIndex
+            self.image.loadedFileName=self.image.imageList[nIndex]
+            if settings['DEBUG']:
+                print self.image.imageList[nIndex]
+            self.refreshCanvas()
+            #
+            self.clearRectangles()
+            self.refreshWindowTitle()
+            self.showMessage('Loaded image %s' % self.image.loadedFileName)
+        except Exception as e:
+            self.showMessage('Error while loading image "%s"' % self.image.imageList[nIndex])
 
     def cleanMainImage(self):
         if self.picCanvas.sfTag in self.image.drawnImageIDs:
@@ -318,6 +365,7 @@ class sfMain():
             qRecta.disappear()
         self.rectangles=[]
         self.edit.targetRectangle=None
+        self.edit.hoverRectangle=None
         self.edit.status=emINERT
 
     def refreshRectangles(self):
@@ -393,6 +441,8 @@ class sfMain():
         '''
             performs some click- and motion- standard binds by packaging the canvas nature as well into the calls
         '''
+        # application-level key-press bind
+        canvas.bind('<KeyPress>',self.funKeyPress)
         canvas.bind('<ButtonRelease-1>',lambda ev: self.canvasRelease(ev,button=1,canvas=canvas))
         canvas.bind('<ButtonRelease-2>',lambda ev: self.canvasRelease(ev,button=2,canvas=canvas))
         canvas.bind('<ButtonRelease-3>',lambda ev: self.canvasRelease(ev,button=3,canvas=canvas))
@@ -402,6 +452,10 @@ class sfMain():
         canvas.bind('<Motion>',lambda ev: self.canvasMotion(ev,canvas=canvas))
 
     def canvasClick(self,event,button,canvas):
+
+        # set focus to grab key events
+        canvas.focus_set()
+
         evPoint=canvas.mapper(event)
         if self.image.loadedImage is None:
             return None
@@ -495,6 +549,7 @@ class sfMain():
             for qRec in self.rectangles:
                 qRec.setColor(settings['COLOR']['INERT'])
                 qRec.undecorate('handle')
+            self.edit.hoverRectangle=None
             closeThing=self.findCloseThing(evPoint,canvas)
             if closeThing is not None:
                 if closeThing[0]=='c':
@@ -503,6 +558,7 @@ class sfMain():
                     closeThing[1][0].decorate('handle','s',closeThing[1][1][0])
                 closeThing[1][0].setColor(settings['COLOR']['SELECTABLE'])
                 descRectangle=closeThing[1][0]
+                self.edit.hoverRectangle=descRectangle
 
         # status bar        
         if descRectangle:

@@ -66,7 +66,8 @@ class sfRectangle():
         _w=int(_st[2]-_st[0])
         _h=int(_st[3]-_st[1])
         _l=' "%s"' % self.label if self.label else ''
-        return 'Rectangle%s (%i x %i px)' % (_l,_w,_h)
+        _r=float(_w)/float(_h) if _h>0 else 0
+        return 'Rectangle%s (%i x %i px, AR=%.4f)' % (_l,_w,_h,_r)
 
     def bareCopy(self):
         return sfRectangle(self.srcPoints[0],self.srcPoints[1],self.canvasMap)
