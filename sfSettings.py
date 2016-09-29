@@ -20,6 +20,13 @@ settings={
         'EDITING': 'red',
         'INERT': 'green',
         'SELECTABLE': 'orange',
+        'LABELING': 'blue',
+        'LABELING_BACKGROUND': '#C0C0FF',
+    },
+    'LABELTEXT': {
+        'FONTFAMILY': 'Helvetica',
+        'FONTSIZE': 12,
+        'FONTWEIGHT': 'bold',
     },
     'DEBUG': True,
 }

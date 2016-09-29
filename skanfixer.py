@@ -8,6 +8,7 @@
 emINERT=0
 emEDITCORNER=1
 emEDITSIDE=2
+emLABELING=3
 
 # standard imports
 import Tkinter as tk
@@ -16,6 +17,8 @@ from PIL import Image, ImageTk
 import os
 import math
 from time import time
+
+import tkFont
 
 # skanfixer imports
 from sfPoint import sfPoint
@@ -76,6 +79,7 @@ class sfMain():
             undoRectangle=None
             buttonPressed=None
             buttonTime=None
+            lastMotionEvent=None
 
         # setting up the data members
         self.rectangles=[]
@@ -128,6 +132,7 @@ class sfMain():
         self.picCanvas.bind('<Configure>',lambda ev: self.canvasConfigure(ev,canvas=self.picCanvas))
 
         self.picCanvas.pack(side=tk.TOP,expand=tk.YES,fill=tk.BOTH)
+        self.picCanvas.focus_set()
 
         self.showMessage('Welcome.')
         self.refreshImageList(os.getcwd())
@@ -205,37 +210,52 @@ class sfMain():
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
                 self.showMessage('Type the rectangle label and press Enter')
                 # create a disposable text box
-                self.rectangleLabelText=tk.Entry(self.picCanvas)
-                self.rectangleLabelText.delete(0,tk.END)
+                labelFont=tkFont.Font(
+                                        family=settings['LABELTEXT']['FONTFAMILY'],
+                                        size=settings['LABELTEXT']['FONTSIZE'],
+                                        weight=settings['LABELTEXT']['FONTWEIGHT'],
+                                    )
+                self.rectangleLabelText=tk.Entry(self.picCanvas,
+                                                 bg=settings['COLOR']['LABELING_BACKGROUND'],
+                                                 bd=0,
+                                                 fg=settings['COLOR']['LABELING'],
+                                                 selectforeground=settings['COLOR']['LABELING_BACKGROUND'],
+                                                 selectbackground=settings['COLOR']['LABELING'],
+                                                 width=15,
+                                                 font=labelFont,
+                                                )
+                self.edit.hoverRectangle.setColor(settings['COLOR']['LABELING'])
                 if self.edit.hoverRectangle.label:
                     self.rectangleLabelText.insert(0,self.edit.hoverRectangle.label)
-                self.rectangleLabelText.bind('<KeyPress>',self.funLabelKeyPress)
+                    self.rectangleLabelText.select_range(0,tk.END)
+                self.edit.status=emLABELING
+                self.rectangleLabelText.bind('<Return>',lambda e: self.funLabelLeaveEditing(cancel=False))
+                self.rectangleLabelText.bind('<Escape>',lambda e: self.funLabelLeaveEditing(cancel=True))
                 self.rectangleLabelText.place(x=self.edit.cursorPos.x,y=self.edit.cursorPos.y)
+                self.rectangleLabelText.focus_set()
 
     def destroyLabelText(self):
-        self.rectangleLabelText.destroy()
-        self.rectangleLabelText=None
+        if self.rectangleLabelText:
+            self.rectangleLabelText.destroy()
+            self.rectangleLabelText=None
+            self.picCanvas.focus_set()
+            self.edit.status=emINERT
+            self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
 
-    def funLabelKeyPress(self,event):
+    def funLabelLeaveEditing(self,cancel=False):
         '''
             this special return value prevents the event from
             being propagated triggering
             the upper-level (bind_all) keypress handler
         '''
-        if event.keycode in [9,36]: # <Esc>, <Enter>
-            if event.keycode==9:
-                newLabel=self.edit.hoverRectangle.label
-            elif event.keycode==36:
-                newLabel=self.rectangleLabelText.get()
-                if len(newLabel)==0:
-                    newLabel=None
-            else:
-                raise ValueError
-            self.destroyLabelText()
-            self.edit.hoverRectangle.label=newLabel
-        if event.keycode == 38:
-            self.rectangleLabelText.insert(tk.INSERT,'a')
-        return 'break'
+        if cancel:
+            newLabel=self.edit.hoverRectangle.label
+        else:
+            newLabel=self.rectangleLabelText.get()
+            if len(newLabel)==0:
+                newLabel=None
+        self.edit.hoverRectangle.label=newLabel
+        self.destroyLabelText()
 
     def funSave(self):
         for qInd,qRecta in enumerate(self.rectangles):
@@ -436,6 +456,7 @@ class sfMain():
             del self.canvasMap[self.picZoom.sfTag]
             self.picZoom.destroy()
             self.picZoom=None
+            self.picCanvas.focus_set()
 
     def _bindMouse(self,canvas):
         '''
@@ -518,6 +539,9 @@ class sfMain():
                 self.edit.status=emINERT
                 self.canvasMotion(event,canvas)
             self.deleteZoomOverlay()
+        elif self.edit.status==emLABELING:
+            # just destroy the label and go ahead
+            self.destroyLabelText()
         else:
             raise ValueError('self.edit.status')
 
@@ -534,6 +558,7 @@ class sfMain():
         self.statusBar['text']=message
 
     def canvasMotion(self,event,canvas):
+        self.edit.lastMotionEvent=event
         evPoint=canvas.mapper(event)
         self.edit.cursorPos=evPoint
         descRectangle=None
