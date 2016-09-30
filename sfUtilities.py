@@ -28,3 +28,12 @@ def findRescaleFactor(imgSize,allowedSize,allowZoom=True):
             mFactor=1
     print 'mFactor=%.3f' % mFactor
     return mFactor
+
+fileNameAllowedChars='qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'+\
+                     '1234567890-_~.,'
+def normalizeString(inText):
+    '''
+        Very strictly discards all characters not falling within a specified
+        set of allowed ones. Used to store labels as filename parts
+    '''
+    return ''.join([c for c in inText if c in fileNameAllowedChars])

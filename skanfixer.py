@@ -30,6 +30,7 @@ from sfUtilities import (
                             popItem,
                             listImageFiles,
                             findRescaleFactor,
+                            normalizeString,
                         )
 
 # directory/images part of the current status are in this class:
@@ -142,7 +143,8 @@ class sfMain():
             allows opening a directory to work on the contained image files
         '''
         newDir = tkFileDialog.askdirectory(parent=self.master, title='Open directory')
-        if newDir is not None:
+        # it seems that upon the user hitting 'cancel' an empty tuple is returned
+        if isinstance(newDir,str) and newDir is not None and newDir!='':
             if settings['DEBUG']:
                 print 'NEWDIR -> %s' % newDir
             self.refreshImageList(newDir)
@@ -240,7 +242,8 @@ class sfMain():
             self.rectangleLabelText=None
             self.picCanvas.focus_set()
             self.edit.status=emINERT
-            self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
+            # do not refresh the status bar, there are messages from closing the labeling
+            # self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
 
     def funLabelLeaveEditing(self,cancel=False):
         '''
@@ -250,10 +253,18 @@ class sfMain():
         '''
         if cancel:
             newLabel=self.edit.hoverRectangle.label
+            self.showMessage('Label cancelled')
         else:
-            newLabel=self.rectangleLabelText.get()
+            rawLabel=self.rectangleLabelText.get()
+            newLabel=normalizeString(rawLabel)
             if len(newLabel)==0:
                 newLabel=None
+                self.showMessage('Label cancelled')
+            else:
+                if len(rawLabel)==len(newLabel):
+                    self.showMessage('Label set.')
+                else:
+                    self.showMessage('Some characters were removed.')
         self.edit.hoverRectangle.label=newLabel
         self.destroyLabelText()
 

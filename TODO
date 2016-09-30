@@ -1,6 +1,13 @@
 TO DO, rectangle labeling
-    - nicer, better placed label
-    - text check on labels?
+    - better placed label
+    - all concerning saving/labels (file naming)
+    - label visible as decoration in the rectangle
+
+TO DO, misc
+    - another target dir for saving, default subdir named: "sfClips"
+    - a "set target" button, with default ready to be created upon "save"
+    - SAVE: do not overwrite!
+    - SAVE: a session counter for naming clips, which is reset at each dir change
 
 PROPOSALS
     * shortcut key to set rotation angle
