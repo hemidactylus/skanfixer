@@ -30,6 +30,11 @@ class sfRectangle():
         self.color=color
         self.decorations={}
         self.label=None
+        self.setRotation(0)
+
+    def setRotation(self,rotation):
+        self.rotation=rotation # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
+        self.decorate('rotation','r',rotation)
 
     def setColor(self,color='red'):
         if self.color!=color:
@@ -133,7 +138,7 @@ class sfRectangle():
 
             This call automatically triggers redisplay on all attached canvases
         '''
-        if decType in ['c','s']:
+        if decType in ['c','s','r']:
             self.decorations[tag]={'type':decType, 'index': decIndex, 'drawingIDs':{}}
             self.refreshDisplay()
         else:
@@ -234,6 +239,21 @@ class sfRectangle():
                                canvCentre.shift(+settings['SIDE_DRAG_HANDLE_SIZE'],0).asTuple()+ \
                                canvCentre.shift(0,-settings['SIDE_DRAG_HANDLE_SIZE']).asTuple())
             return tCanvas.create_polygon(*polyVertices,width=0,fill=self.color)
+        elif dType=='r':
+            # sortedTuple -> (x_min,y_min,x_max,y_max)
+            SORTED_SIDES=(
+                            ((0,3),(2,3)),
+                            ((2,1),(2,3)),
+                            ((0,1),(2,1)),
+                            ((0,1),(0,3)),
+
+            TO DO
+
+                         ) # side-index, point index, x/y-index
+            # determine, according to the dIndex, the orientation and position of the additional marker
+
+        else:
+            raise ValueError
 
     def disappear(self):
         '''
