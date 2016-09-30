@@ -20,6 +20,12 @@ CI_SID_SEQ=((0,'y'),(1,'x'),(1,'y'),(0,'x'))
         -> when altering the second side, set the 'x' of the second (1) point.
 '''
 
+# constant-side-index (w.r.t. sortedTuple) for rotation marker
+ST_IND_SEQ=(3,2,1,0)
+'''
+    This means: rotation index 2 -> third item=1 -> ymin is the constant, hence the varying is x*
+'''
+
 class sfRectangle():
     
     def __init__(self,p1,p2,canvasMap,color='red'):
@@ -34,6 +40,7 @@ class sfRectangle():
 
     def setRotation(self,rotation):
         self.rotation=rotation # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
+        self.undecorate('rotation')
         self.decorate('rotation','r',rotation)
 
     def setColor(self,color='red'):
@@ -72,7 +79,12 @@ class sfRectangle():
         _h=int(_st[3]-_st[1])
         _l=' "%s"' % self.label if self.label else ''
         _r=float(_w)/float(_h) if _h>0 else 0
-        return 'Rectangle%s (%i x %i px, AR=%.4f)' % (_l,_w,_h,_r)
+        _rot='DRUL'[self.rotation]
+        return 'Rectangle%s (%i x %i px, AR=%.4f, rot=%s)' % (_l,_w,_h,_r,_rot)
+
+    def setLabel(self,newLabel):
+        self.label=newLabel
+        # here attach handling of decoration, if any
 
     def bareCopy(self):
         return sfRectangle(self.srcPoints[0],self.srcPoints[1],self.canvasMap)
@@ -214,7 +226,10 @@ class sfRectangle():
 
         # rewrite this with a 'map' and a *pts
         mapRect=sfRectangle(coordMapper(self.srcPoints[0],'r'),coordMapper(self.srcPoints[1],'r'),{})
-        drawingID=targetCanvas.create_rectangle(mapRect.sortedTuple(),width=3,outline=self.color)
+        drawingID=targetCanvas.create_rectangle(mapRect.sortedTuple(),
+                                                width=settings['RECTANGLE']['WIDTH'],
+                                                outline=self.color,
+                                            )
         self.drawingIDs[canvasTag]=drawingID
         # handle decorations attached to this rectangle
         for dk,dv in self.decorations.iteritems():
@@ -240,18 +255,31 @@ class sfRectangle():
                                canvCentre.shift(0,-settings['SIDE_DRAG_HANDLE_SIZE']).asTuple())
             return tCanvas.create_polygon(*polyVertices,width=0,fill=self.color)
         elif dType=='r':
-            # sortedTuple -> (x_min,y_min,x_max,y_max)
-            SORTED_SIDES=(
-                            ((0,3),(2,3)),
-                            ((2,1),(2,3)),
-                            ((0,1),(2,1)),
-                            ((0,1),(0,3)),
-
-            TO DO
-
-                         ) # side-index, point index, x/y-index
-            # determine, according to the dIndex, the orientation and position of the additional marker
-
+            # use dIndex and ST_IND_SEQ to determine which side is the rotation-wise bottom side
+            # *note* this is relative to the sortedTuple notation
+            # Now the extremes of the segment to draw are calculated
+            _sTuple=self.sortedTuple()
+            flatDimInd=ST_IND_SEQ[dIndex]    # index of the dim common to the two points
+            otherFlatDimInd=(2+flatDimInd)%4 # same orientation as the above, the other side (used for displacing)
+            flatDimName='xy'[flatDimInd%2]   # either 'x' or 'y', associated to above
+            varDimInd=map(lambda ind: ind+(flatDimInd+1)%2,(0,2))
+                                             # this becomes 0,2 or 1,3, opposite to the flatDim
+            varDimName='yx'[flatDimInd%2]    # either 'x' or 'y', associated both values above
+            # building of the segment extremes
+            flatDimValue=(lambda pfar,pnear: pfar+settings['RECTANGLE']['BOTTOMFRACTION']*(pnear-pfar))\
+                (_sTuple[otherFlatDimInd],_sTuple[flatDimInd])
+            segmentPoints=[coordMapper(sfPoint(**{
+                    flatDimName: flatDimValue,
+                    varDimName: _sTuple[varDimInd[pointindex]],
+                }),'r') for pointindex in (0,1)]
+            # print 'PT 0', coordMapper(segmentPoints[0],'d')
+            # print 'PT 1', coordMapper(segmentPoints[1],'d')
+            return tCanvas.create_line(
+                                            segmentPoints[0].x,segmentPoints[0].y,
+                                            segmentPoints[1].x,segmentPoints[1].y,
+                                            width=settings['RECTANGLE']['BOTTOMWIDTH'],
+                                            fill=self.color,
+                                        )
         else:
             raise ValueError
 

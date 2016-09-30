@@ -28,5 +28,10 @@ settings={
         'FONTSIZE': 12,
         'FONTWEIGHT': 'bold',
     },
+    'RECTANGLE': {
+        'WIDTH': 3,
+        'BOTTOMWIDTH': 1,
+        'BOTTOMFRACTION': 0.86,
+    },
     'DEBUG': True,
 }

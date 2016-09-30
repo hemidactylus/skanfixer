@@ -208,6 +208,10 @@ class sfMain():
         if event.keycode == 114:        # <right>
             self.funBrowse(delta=+1)
             return
+        if event.keycode == 27:         # R
+            if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
+                self.edit.hoverRectangle.setRotation((self.edit.hoverRectangle.rotation+1)%4)
+                self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
         if event.keycode == 46:         # L
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
                 self.showMessage('Type the rectangle label and press Enter')
@@ -265,7 +269,7 @@ class sfMain():
                     self.showMessage('Label set.')
                 else:
                     self.showMessage('Some characters were removed.')
-        self.edit.hoverRectangle.label=newLabel
+        self.edit.hoverRectangle.setLabel(newLabel)
         self.destroyLabelText()
 
     def funSave(self):
