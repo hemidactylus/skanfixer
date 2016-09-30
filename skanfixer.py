@@ -237,7 +237,7 @@ class sfMain():
                 self.edit.status=emLABELING
                 self.rectangleLabelText.bind('<Return>',lambda e: self.funLabelLeaveEditing(cancel=False))
                 self.rectangleLabelText.bind('<Escape>',lambda e: self.funLabelLeaveEditing(cancel=True))
-                self.rectangleLabelText.place(x=self.edit.cursorPos.x,y=self.edit.cursorPos.y)
+                self.rectangleLabelText.place(x=self.edit.lastMotionEvent.x,y=self.edit.lastMotionEvent.y)
                 self.rectangleLabelText.focus_set()
 
     def destroyLabelText(self):
