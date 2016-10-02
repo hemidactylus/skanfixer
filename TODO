@@ -1,16 +1,17 @@
-TO DO, rectangle labeling
-    - better placed label (centre on cursor)
-    - all concerning saving/labels (file naming)
-    - label visible as decoration in the rectangle
+TO DO, later releases
+    Label decoration visible only when rectangle hovered-over
+    Better placed label (centre on cursor)
+    A checkerboard background when the zoom overlay image does not cover all of the zoom canvas (to plan well)
 
 TO DO, misc
+    - all concerning saving/labels (file naming)
     - another target dir for saving, default subdir named: "sfClips"
     - a "set target" button, with default ready to be created upon "save"
     - SAVE: do not overwrite!
     - SAVE: a session counter for naming clips, which is reset at each dir change
 
 PROPOSALS
-    * shortcut keys to mirror some mouse operations
+    * shortcut keys to mirror some mouse operations: c to clear rectangles, s to save, etc (keep a list)
 
 TO DO, majors
     * suggested rectangleness

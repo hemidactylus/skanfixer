@@ -1,6 +1,8 @@
 # sfUtilities: general utilities
 import os
 
+PIC_SUFFIXES=['jpg','jpeg','bmp','tiff','gif','png']
+
 def popItem(qList,qItem):
     qList.pop(qList.index(qItem))
     return
@@ -16,7 +18,7 @@ def isPicture(filename):
     '''
         temporary implementation: this returns True for files which are image files
     '''
-    return filename[-3:].lower() in ['jpg'] or filename[-4:].lower() in ['jpeg']
+    return any(filename[-len(suffix):] == suffix for suffix in PIC_SUFFIXES)
 
 def findRescaleFactor(imgSize,allowedSize,allowZoom=True):
     '''

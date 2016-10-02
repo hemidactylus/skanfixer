@@ -4,6 +4,8 @@
     to the ones for the canvas.
 '''
 
+import Tkinter as tk
+
 from sfPoint import sfPoint
 from sfSettings import settings
 
@@ -35,7 +37,7 @@ class sfRectangle():
         self.drawingIDs={}
         self.color=color
         self.decorations={}
-        self.label=None
+        self.setLabel(None)
         self.setRotation(0)
 
     def setRotation(self,rotation):
@@ -85,6 +87,9 @@ class sfRectangle():
     def setLabel(self,newLabel):
         self.label=newLabel
         # here attach handling of decoration, if any
+        self.undecorate('labeling')
+        if newLabel is not None:
+            self.decorate('labeling','d',newLabel)
 
     def bareCopy(self):
         return sfRectangle(self.srcPoints[0],self.srcPoints[1],self.canvasMap)
@@ -146,11 +151,11 @@ class sfRectangle():
             adds a decoration - a graphical gizmo - to the representation of the rectangle.
             tag is used for subsequent undecoration
             decType='c' or 's' for corner or side resp.
-            decIndex is a 0-3 index to specify decoration position.
+            decIndex is a 0-3 index to specify decoration position, or something else for various decorations
 
             This call automatically triggers redisplay on all attached canvases
         '''
-        if decType in ['c','s','r']:
+        if decType in ['c','s','r','d']:
             self.decorations[tag]={'type':decType, 'index': decIndex, 'drawingIDs':{}}
             self.refreshDisplay()
         else:
@@ -279,6 +284,16 @@ class sfRectangle():
                                             segmentPoints[1].x,segmentPoints[1].y,
                                             width=settings['RECTANGLE']['BOTTOMWIDTH'],
                                             fill=self.color,
+                                        )
+        elif dType=='d':
+            # print the label contained in dIndex on the rectangle
+            _sTuple=self.sortedTuple()
+            _lOrigin=coordMapper(sfPoint(x=_sTuple[0],y=_sTuple[3]),'r')
+            return tCanvas.create_text(
+                                            _lOrigin.x+8,_lOrigin.y-6,
+                                            text=dIndex, stipple='gray25',
+                                            fill=self.color, anchor=tk.SW,
+
                                         )
         else:
             raise ValueError

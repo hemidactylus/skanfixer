@@ -15,6 +15,7 @@ import Tkinter as tk
 import tkFileDialog
 from PIL import Image, ImageTk
 import os
+import sys
 import math
 from time import time
 
@@ -49,10 +50,9 @@ class imageHandlingInfo():
         self.directory=workdir
         self.imageList=listImageFiles(self.directory)
 
-
 class sfMain():
 
-    def __init__(self,master):
+    def __init__(self,master,sourceDir=None):
         '''
             The object 'testWindow' has various families of data members:
 
@@ -94,20 +94,22 @@ class sfMain():
         self.master.geometry('%ix%i' % (settings['WINDOW_SIZE']['WIDTH'],settings['WINDOW_SIZE']['HEIGHT']))
         # controls are in a frame
         self.controlPanel=tk.Frame(self.master)
-        self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
-        self.quitButton.pack(side=tk.LEFT)
+        self.openDirButton=tk.Button(self.controlPanel,text='Open Dir',command=self.funOpenDir)
+        self.openDirButton.pack(side=tk.LEFT)
+        self.refreshDirButton=tk.Button(self.controlPanel,text='Refresh',command=self.funRefreshDir)
+        self.refreshDirButton.pack(side=tk.LEFT)
         self.shiftButtons=[
             tk.Button(self.controlPanel,text='<<',command=lambda: self.funBrowse(delta=-1)),
             tk.Button(self.controlPanel,text='>>',command=lambda: self.funBrowse(delta=+1)),
         ]
         for sB in self.shiftButtons:
             sB.pack(side=tk.LEFT)
+        spacer1=tk.Label(self.controlPanel,width=1)
+        spacer1.pack(side=tk.LEFT)
         self.saveButton=tk.Button(self.controlPanel,text='Save',command=self.funSave)
         self.saveButton.pack(side=tk.LEFT)
-        self.openDirButton=tk.Button(self.controlPanel,text='Open Dir',command=self.funOpenDir)
-        self.openDirButton.pack(side=tk.LEFT)
-        self.refreshDirButton=tk.Button(self.controlPanel,text='Refresh',command=self.funRefreshDir)
-        self.refreshDirButton.pack(side=tk.LEFT)
+        self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
+        self.quitButton.pack(side=tk.LEFT)
         if settings['DEBUG']:
             self.doButton=tk.Button(self.controlPanel,fg='blue',text='DEBUG',command=self.doButton)
             self.doButton.pack(side=tk.LEFT)
@@ -136,7 +138,9 @@ class sfMain():
         self.picCanvas.focus_set()
 
         self.showMessage('Welcome.')
-        self.refreshImageList(os.getcwd())
+        if sourceDir is None:
+            sourceDir=os.getcwd()
+        self.refreshImageList(sourceDir)
 
     def funOpenDir(self):
         '''
@@ -207,6 +211,9 @@ class sfMain():
             return
         if event.keycode == 114:        # <right>
             self.funBrowse(delta=+1)
+            return
+        if event.keycode == 24:         # Q
+            self.funExit()
             return
         if event.keycode == 27:         # R
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
@@ -617,9 +624,22 @@ def main():
     # standard imports
     import Tkinter as tk
 
+    # command line parsing
+    sourcedir=None
+    arglist=sys.argv[1:]
+    while arglist:
+        qarg=arglist.pop(0)
+        if qarg[0:1]=='-':
+            raise NotImplementedError
+        elif os.path.isdir(qarg):
+            sourcedir=qarg
+        else:
+            raise ValueError(qarg)
+
+
     # main body
     root=tk.Tk()
-    mainWindow=sfMain(root)
+    mainWindow=sfMain(root,sourceDir=sourcedir)
 
     root.mainloop()
 
