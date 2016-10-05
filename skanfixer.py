@@ -280,11 +280,21 @@ class sfMain():
         self.destroyLabelText()
 
     def funSave(self):
+        # TEMP
+        namingOffset=0
+        #
         for qInd,qRecta in enumerate(self.rectangles):
             if settings['DEBUG']:
                 print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles))
             clippedImage=self.image.loadedImage.crop(qRecta.sortedTuple(integer=True))
-            clippedImage.save('CLIP_%03i.jpg' % qInd,'jpeg')
+            if qRecta.rotation != 0:
+                # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
+                clippedImage=clippedImage.transpose(qRecta.rotateTransposeParameter())
+            if qRecta.label:
+                imageName='%003i_%s.jpg' % (qInd+namingOffset,qRecta.label)
+            else:
+                imageName='%003i.jpg' % (qInd+namingOffset)
+            clippedImage.save(imageName,'jpeg')
         if settings['DEBUG']:
             print 'Done.'
 

@@ -5,6 +5,7 @@
 '''
 
 import Tkinter as tk
+from PIL import Image
 
 from sfPoint import sfPoint
 from sfSettings import settings
@@ -28,6 +29,13 @@ ST_IND_SEQ=(3,2,1,0)
     This means: rotation index 2 -> third item=1 -> ymin is the constant, hence the varying is x*
 '''
 
+TRANSPOSE_PARAMETER_VALUES=[
+    0,
+    Image.ROTATE_270,
+    Image.ROTATE_180,
+    Image.ROTATE_90,
+]
+
 class sfRectangle():
     
     def __init__(self,p1,p2,canvasMap,color='red'):
@@ -44,6 +52,13 @@ class sfRectangle():
         self.rotation=rotation # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
         self.undecorate('rotation')
         self.decorate('rotation','r',rotation)
+
+    def rotateTransposeParameter(self):
+        '''
+            returns the parameter to feed Image.transpose in order to achieve
+            the rotation angle corresponding to the rectangle's rotation value
+        '''
+        return TRANSPOSE_PARAMETER_VALUES[self.rotation]
 
     def setColor(self,color='red'):
         if self.color!=color:

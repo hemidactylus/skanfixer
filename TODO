@@ -4,11 +4,13 @@ TO DO, later releases
     A checkerboard background when the zoom overlay image does not cover all of the zoom canvas (to plan well)
 
 TO DO, misc
-    - all concerning saving/labels (file naming)
     - another target dir for saving, default subdir named: "sfClips"
     - a "set target" button, with default ready to be created upon "save"
-    - SAVE: do not overwrite!
-    - SAVE: a session counter for naming clips, which is reset at each dir change
+    - in funSave:
+        - SAVE: do not overwrite! (iteratively try several numberings and labelings)
+        - SAVE: a session counter for naming clips, which is reset at each dir change
+            -> a button/key to reset global counter?
+    - A mini-help in the status bar upon pressing 'h'
 
 PROPOSALS
     * shortcut keys to mirror some mouse operations: c to clear rectangles, s to save, etc (keep a list)
