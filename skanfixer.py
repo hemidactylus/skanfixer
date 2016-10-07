@@ -367,8 +367,8 @@ class sfMain():
             self.rectangleLabelText=None
             self.picCanvas.focus_set()
             self.edit.status=emINERT
-            # do not refresh the status bar, there are messages from closing the labeling
-            # self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
+            # Even though there'd be messages from closing the labeling, we want to re-colour the rectangle:
+            self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
 
     def funLabelLeaveEditing(self,cancel=False):
         '''

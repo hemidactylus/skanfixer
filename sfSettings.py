@@ -36,5 +36,6 @@ settings={
     'DEBUG': True,
     'DEBUG_BUTTON': False,
     'MAX_DIRNAME_LENGTH': 32,
-    'TARGET_SUBDIRECTORY': 'sfClips'
+    'TARGET_SUBDIRECTORY': 'sfClips',
+    'VERSION': '1.0',
 }
