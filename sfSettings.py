@@ -34,4 +34,7 @@ settings={
         'BOTTOMFRACTION': 0.86,
     },
     'DEBUG': True,
+    'DEBUG_BUTTON': False,
+    'MAX_DIRNAME_LENGTH': 32,
+    'TARGET_SUBDIRECTORY': 'sfClips'
 }

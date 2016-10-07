@@ -32,7 +32,27 @@ from sfUtilities import (
                             listImageFiles,
                             findRescaleFactor,
                             normalizeString,
+                            rightClipText,
+                            ensureDirectoryExists,
+                            safeBuildFileName,
                         )
+
+# handy miniclasses for datamembers
+class sfEditStatus():
+    cursorPos=sfPoint()
+    status=emINERT
+    targetRectangle=None
+    hoverRectangle=None
+    targetPoint=0
+    undoRectangle=None
+    buttonPressed=None
+    buttonTime=None
+    lastMotionEvent=None
+
+# handy miniclass for handling clip-saving status
+class sfSaveStatus():
+    offset=1
+    targetDirectory=''
 
 # directory/images part of the current status are in this class:
 class imageHandlingInfo():
@@ -70,21 +90,10 @@ class sfMain():
                 * rectangles:               a list of rectangles (with their bindings and everything)
         '''
 
-        # handy miniclasses for datamembers
-        class sfEditStatus():
-            cursorPos=sfPoint()
-            status=emINERT
-            targetRectangle=None
-            hoverRectangle=None
-            targetPoint=0
-            undoRectangle=None
-            buttonPressed=None
-            buttonTime=None
-            lastMotionEvent=None
-
         # setting up the data members
         self.rectangles=[]
         self.edit=sfEditStatus()
+        self.save=sfSaveStatus()
 
         if settings['DEBUG']:
             print 'Init.'
@@ -95,22 +104,30 @@ class sfMain():
         # controls are in a frame
         self.controlPanel=tk.Frame(self.master)
         self.openDirButton=tk.Button(self.controlPanel,text='Open Dir',command=self.funOpenDir)
+        self.openDirButton.bind('<Enter>',lambda e: self.mouseOnButton('opendir'))
         self.openDirButton.pack(side=tk.LEFT)
         self.refreshDirButton=tk.Button(self.controlPanel,text='Refresh',command=self.funRefreshDir)
+        self.refreshDirButton.bind('<Enter>',lambda e: self.mouseOnButton('refresh'))
         self.refreshDirButton.pack(side=tk.LEFT)
         self.shiftButtons=[
             tk.Button(self.controlPanel,text='<<',command=lambda: self.funBrowse(delta=-1)),
             tk.Button(self.controlPanel,text='>>',command=lambda: self.funBrowse(delta=+1)),
         ]
         for sB in self.shiftButtons:
+            sB.bind('<Enter>',lambda e: self.mouseOnButton(''))
             sB.pack(side=tk.LEFT)
         spacer1=tk.Label(self.controlPanel,width=1)
         spacer1.pack(side=tk.LEFT)
+        self.chooseTargetButton=tk.Button(self.controlPanel,text='Target Dir',command=self.funOpenTargetDir)
+        self.chooseTargetButton.bind('<Enter>',lambda e: self.mouseOnButton('targetdir'))
+        self.chooseTargetButton.pack(side=tk.LEFT)
         self.saveButton=tk.Button(self.controlPanel,text='Save',command=self.funSave)
+        self.saveButton.bind('<Enter>',lambda e: self.mouseOnButton('save'))
         self.saveButton.pack(side=tk.LEFT)
         self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
+        self.quitButton.bind('<Enter>',lambda e: self.mouseOnButton('exit'))
         self.quitButton.pack(side=tk.LEFT)
-        if settings['DEBUG']:
+        if settings['DEBUG_BUTTON']:
             self.doButton=tk.Button(self.controlPanel,fg='blue',text='DEBUG',command=self.doButton)
             self.doButton.pack(side=tk.LEFT)
         self.controlPanel.pack(side=tk.TOP)
@@ -142,6 +159,29 @@ class sfMain():
             sourceDir=os.getcwd()
         self.refreshImageList(sourceDir)
 
+    def mouseOnButton(self,tag):
+            '''
+                Values for 'tag':
+                    save, exit, opendir, refresh
+            '''
+            _msg=''
+            if tag=='save':
+                _msg='%i rectangles will be saved in %s, numbering starts at %i' % (
+                        len(self.rectangles),
+                        rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH']),
+                        self.save.offset,
+                    )
+            if tag=='exit':
+                _msg='Exit. Unsaved rectangles will be lost.'
+            if tag=='opendir':
+                _msg='Open new dir [current directory: %s].' % rightClipText(self.image.directory,settings['MAX_DIRNAME_LENGTH'])
+            if tag=='refresh':
+                _msg='Refresh directory. Rectangles will be lost, numbering reset.'
+            if tag=='targetdir':
+                _msg='Choose new target dir [currently: %s]' % rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH'])
+
+            self.showMessage(_msg)
+
     def funOpenDir(self):
         '''
             allows opening a directory to work on the contained image files
@@ -152,6 +192,19 @@ class sfMain():
             if settings['DEBUG']:
                 print 'NEWDIR -> %s' % newDir
             self.refreshImageList(newDir)
+            self.showMessage('Chosen dir %s' % rightClipText(newDir,settings['MAX_DIRNAME_LENGTH']))
+
+    def funOpenTargetDir(self):
+        '''
+            allows changing the target directory
+        '''
+        newTargetDir = tkFileDialog.askdirectory(parent=self.master, title='Choose target directory')
+        # it seems that upon the user hitting 'cancel' an empty tuple is returned
+        if isinstance(newTargetDir,str) and newTargetDir is not None and newTargetDir!='':
+            if settings['DEBUG']:
+                print 'NEWTARGETDIR -> %s' % newTargetDir
+            self.save.targetDirectory=newTargetDir
+            self.showMessage('New target dir %s' % rightClipText(newTargetDir,settings['MAX_DIRNAME_LENGTH']))
 
     def funRefreshDir(self):
         '''
@@ -166,9 +219,13 @@ class sfMain():
         '''
             given a work directory, the image list is refreshed
             and either the first image or the currently-loaded image
-            is re-loaded from the list
+            is re-loaded from the list.
+
+            Also the default target subdir and numbering offset are set.
         '''
         self.image=imageHandlingInfo(workdir)
+        self.save.targetDirectory=os.path.join(workdir,settings['TARGET_SUBDIRECTORY'])
+        self.save.offset=1
         if settings['DEBUG']:
             print self.image.imageList
         if self.image.imageList:
@@ -188,10 +245,12 @@ class sfMain():
                 * <left> = 113
                 R = 27
                 L = 46
-                * Z = 52
+                Z = 52
                 X = 53
                 <Enter> = 36
                 <backspace> = 22
+                D = 40
+                <Del> = 119
         '''
         if settings['DEBUG']:
             print 'KP %s' % event.keycode
@@ -206,6 +265,9 @@ class sfMain():
             else:
                 self.deleteZoomOverlay()
             return
+        if event.keycode in [40,119]: # D, <Del>
+            # if there is a hovered rectangle, delete it
+            print 'TO DO!'            
         if event.keycode == 113:        # <left>
             self.funBrowse(delta=-1)
             return
@@ -280,21 +342,26 @@ class sfMain():
         self.destroyLabelText()
 
     def funSave(self):
-        # TEMP
-        namingOffset=0
-        #
+        savedClips=0
         for qInd,qRecta in enumerate(self.rectangles):
             if settings['DEBUG']:
-                print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles))
+                print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles)),
             clippedImage=self.image.loadedImage.crop(qRecta.sortedTuple(integer=True))
             if qRecta.rotation != 0:
                 # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
                 clippedImage=clippedImage.transpose(qRecta.rotateTransposeParameter())
             if qRecta.label:
-                imageName='%003i_%s.jpg' % (qInd+namingOffset,qRecta.label)
+                imageTitle='%003i_%s' % (self.save.offset,qRecta.label)
             else:
-                imageName='%003i.jpg' % (qInd+namingOffset)
+                imageTitle='%003i' % (self.save.offset)
+            self.save.offset+=1
+            savedClips+=1
+            imageName=safeBuildFileName(self.save.targetDirectory,imageTitle,'jpg')
+            ensureDirectoryExists(self.save.targetDirectory)
             clippedImage.save(imageName,'jpeg')
+            if settings['DEBUG']:
+                print 'Dest=%s' % (imageName)
+        self.showMessage('%i images saved in %s.' % (savedClips, rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH'])))
         if settings['DEBUG']:
             print 'Done.'
 
