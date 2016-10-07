@@ -282,6 +282,7 @@ class sfMain():
         _helpStrings=[
                     'R(otate)',
                     'L(abel)',
+                    'D(elete)',
                     'Z(oom)/[Esc]',
                     'S(ave clips)',
                     'C(lear clips)',
@@ -305,11 +306,17 @@ class sfMain():
             return
         if event.keycode == 39:         # S
             self.funSave()
+            return
         if event.keycode == 54:         # C
             self.clearRectangles()
+            return
         if event.keycode in [40,119,22]: # D, <Del>, <Backspace>
             # if there is a hovered rectangle, delete it
-            print 'TO DO!'
+            if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
+                self.edit.hoverRectangle.disappear()
+                popItem(self.rectangles,self.edit.hoverRectangle)
+                self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
+            return
         if event.keycode == 113:        # <left>
             self.funBrowse(delta=-1)
             return
@@ -325,6 +332,7 @@ class sfMain():
                 self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
         if event.keycode == 43:         # H
             self.showMessage('Keys: %s' % (', '.join(_helpStrings)))
+            return
         if event.keycode == 46:         # L
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
                 self.showMessage('Type the rectangle label and press Enter')
