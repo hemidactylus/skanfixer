@@ -3,13 +3,5 @@ TO DO, later releases
     Better placed label (centre on cursor)
     A checkerboard background when the zoom overlay image does not cover all of the zoom canvas (to plan well)
 
-TO DO, misc
-    - in funSave:
-        -> a button/key to reset global counter?
-    - A mini-help in the status bar upon pressing 'h'
-
-PROPOSALS
-    * shortcut keys to mirror some mouse operations: c to clear rectangles, s to save, etc (keep a list)
-
 TO DO, majors
     * suggested rectangleness

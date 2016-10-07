@@ -37,6 +37,9 @@ from sfUtilities import (
                             safeBuildFileName,
                         )
 
+# dialog test
+from sfInputBox import sfInputBox
+
 # handy miniclasses for datamembers
 class sfEditStatus():
     cursorPos=sfPoint()
@@ -103,7 +106,7 @@ class sfMain():
         self.master.geometry('%ix%i' % (settings['WINDOW_SIZE']['WIDTH'],settings['WINDOW_SIZE']['HEIGHT']))
         # controls are in a frame
         self.controlPanel=tk.Frame(self.master)
-        self.openDirButton=tk.Button(self.controlPanel,text='Open Dir',command=self.funOpenDir)
+        self.openDirButton=tk.Button(self.controlPanel,text='Browse',command=self.funOpenDir)
         self.openDirButton.bind('<Enter>',lambda e: self.mouseOnButton('opendir'))
         self.openDirButton.pack(side=tk.LEFT)
         self.refreshDirButton=tk.Button(self.controlPanel,text='Refresh',command=self.funRefreshDir)
@@ -118,12 +121,17 @@ class sfMain():
             sB.pack(side=tk.LEFT)
         spacer1=tk.Label(self.controlPanel,width=1)
         spacer1.pack(side=tk.LEFT)
-        self.chooseTargetButton=tk.Button(self.controlPanel,text='Target Dir',command=self.funOpenTargetDir)
+        self.chooseTargetButton=tk.Button(self.controlPanel,text='Target',command=self.funOpenTargetDir)
         self.chooseTargetButton.bind('<Enter>',lambda e: self.mouseOnButton('targetdir'))
         self.chooseTargetButton.pack(side=tk.LEFT)
         self.saveButton=tk.Button(self.controlPanel,text='Save',command=self.funSave)
         self.saveButton.bind('<Enter>',lambda e: self.mouseOnButton('save'))
         self.saveButton.pack(side=tk.LEFT)
+        self.offsetButton=tk.Button(self.controlPanel,text='Offset',command=self.funSetOffset)
+        self.offsetButton.bind('<Enter>',lambda e: self.mouseOnButton('setoffset'))
+        self.offsetButton.pack(side=tk.LEFT)
+        spacer2=tk.Label(self.controlPanel,width=1)
+        spacer2.pack(side=tk.LEFT)
         self.quitButton=tk.Button(self.controlPanel,text='Exit',command=self.funExit)
         self.quitButton.bind('<Enter>',lambda e: self.mouseOnButton('exit'))
         self.quitButton.pack(side=tk.LEFT)
@@ -166,10 +174,10 @@ class sfMain():
             '''
             _msg=''
             if tag=='save':
-                _msg='%i rectangles will be saved in %s, numbering starts at %i' % (
+                _msg='%i rectangles (numbered from %i) will be saved in %s' % (
                         len(self.rectangles),
-                        rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH']),
                         self.save.offset,
+                        rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH']),
                     )
             if tag=='exit':
                 _msg='Exit. Unsaved rectangles will be lost.'
@@ -179,8 +187,22 @@ class sfMain():
                 _msg='Refresh directory. Rectangles will be lost, numbering reset.'
             if tag=='targetdir':
                 _msg='Choose new target dir [currently: %s]' % rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH'])
+            if tag=='setoffset':
+                _msg='Manually set filename offset (currently: %i)' % self.save.offset
 
             self.showMessage(_msg)
+
+    def funSetOffset(self):
+        '''
+            Prompts the user for a new offset to apply to saved clips
+        '''
+        d=sfInputBox(self.master,title='Set filename offset',prevValue=self.save.offset)
+        if d.result is not None:
+            self.save.offset=d.result
+            self.showMessage('New offset: %i' % self.save.offset)
+        else:
+            self.showMessage('Offset unchanged (%i)' % self.save.offset)
+        self.picCanvas.focus_set()
 
     def funOpenDir(self):
         '''
@@ -223,6 +245,7 @@ class sfMain():
 
             Also the default target subdir and numbering offset are set.
         '''
+        self.clearRectangles()
         self.image=imageHandlingInfo(workdir)
         self.save.targetDirectory=os.path.join(workdir,settings['TARGET_SUBDIRECTORY'])
         self.save.offset=1
@@ -241,17 +264,32 @@ class sfMain():
         '''
             This reacts to some keyboard shortcuts: useful keycodes are
                 * <ESC> = 9
-                * <right> = 114
-                * <left> = 113
-                R = 27
-                L = 46
-                Z = 52
-                X = 53
-                <Enter> = 36
-                <backspace> = 22
-                D = 40
-                <Del> = 119
+                * <Right> = 114
+                * <Left> = 113
+                * <Enter> = 36
+                * <Backspace> = 22
+                * <Del> = 119
+                * R = 27
+                * L = 46
+                * Z = 52
+                * X = 53
+                * Q = 24
+                * D = 40
+                * H = 43
+                * S = 39
+                * C = 54
         '''
+        _helpStrings=[
+                    'R(otate)',
+                    'L(abel)',
+                    'Z(oom)/[Esc]',
+                    'S(ave clips)',
+                    'C(lear clips)',
+                    '[Arrows]',
+                    'H(help)',
+                    'Q(uit)',
+                 ]
+
         if settings['DEBUG']:
             print 'KP %s' % event.keycode
         if event.keycode == 9:          # <Esc>
@@ -265,9 +303,13 @@ class sfMain():
             else:
                 self.deleteZoomOverlay()
             return
-        if event.keycode in [40,119]: # D, <Del>
+        if event.keycode == 39:         # S
+            self.funSave()
+        if event.keycode == 54:         # C
+            self.clearRectangles()
+        if event.keycode in [40,119,22]: # D, <Del>, <Backspace>
             # if there is a hovered rectangle, delete it
-            print 'TO DO!'            
+            print 'TO DO!'
         if event.keycode == 113:        # <left>
             self.funBrowse(delta=-1)
             return
@@ -281,6 +323,8 @@ class sfMain():
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
                 self.edit.hoverRectangle.setRotation((self.edit.hoverRectangle.rotation+1)%4)
                 self.canvasMotion(self.edit.lastMotionEvent,self.picCanvas)
+        if event.keycode == 43:         # H
+            self.showMessage('Keys: %s' % (', '.join(_helpStrings)))
         if event.keycode == 46:         # L
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
                 self.showMessage('Type the rectangle label and press Enter')
@@ -480,12 +524,14 @@ class sfMain():
         return None
 
     def clearRectangles(self):
+        _nRectas=len(self.rectangles)
         for qRecta in self.rectangles:
             qRecta.disappear()
         self.rectangles=[]
         self.edit.targetRectangle=None
         self.edit.hoverRectangle=None
         self.edit.status=emINERT
+        self.showMessage('%i rectangles cleared.' % _nRectas)
 
     def refreshRectangles(self):
         for qRecta in self.rectangles:
