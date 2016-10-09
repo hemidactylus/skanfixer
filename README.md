@@ -47,12 +47,16 @@ to change its orientation (which affects the final saved clip-picture).
 A rectangle can have a defining, not necessarily unique, label: to set it, press 'L' when the rectangle is
 highlighted, type the label and press 'Enter' to confirm.
 
+<img src="flow_pic/labeling.png" alt="Labeling" style="width: 200px;"/>
+
 ### The zoom view
 
 You can turn on and off, at any time, a zoom view, centred on the current mouse position, to perform pixel-sharp
 positioning. Press 'Z' to toggle it, or 'Esc' to clear it. The zoom view acts as a portion of the main picture view
 in (almost) all respects, so for instance you can move a rectangle's corner through the zoom view, in and out of it,
 open the zoom window while moving it, etc.
+
+<img src="flow_pic/zoom.png" alt="Zoom" style="width: 200px;"/>
 
 ## Known bugs
 
