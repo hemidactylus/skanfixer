@@ -6,7 +6,7 @@ Define clip rectangles, with their rotation and label, hit Save and move on to t
 
 ## Overview
 
-![Flow](flow_pic/sf_flow.jpg)
+<img src="flow_pic/sf_flow.jpg" alt="Flow" style="width: 80%;"/>
 
 You have a directory with some images, each coming for instance from scanning a pageful of photos or something
 and containing several subjects. If you want to save each subject as a separate image, and __do it quickly__,
@@ -47,7 +47,7 @@ to change its orientation (which affects the final saved clip-picture).
 A rectangle can have a defining, not necessarily unique, label: to set it, press 'L' when the rectangle is
 highlighted, type the label and press 'Enter' to confirm.
 
-<img src="flow_pic/labeling.png" alt="Labeling" style="width: 200px;"/>
+<img src="flow_pic/labeling.png" alt="Labeling" style="width: 120px;"/>
 
 ### The zoom view
 
@@ -56,7 +56,7 @@ positioning. Press 'Z' to toggle it, or 'Esc' to clear it. The zoom view acts as
 in (almost) all respects, so for instance you can move a rectangle's corner through the zoom view, in and out of it,
 open the zoom window while moving it, etc.
 
-<img src="flow_pic/zoom.png" alt="Zoom" style="width: 200px;"/>
+<img src="flow_pic/zoom.png" alt="Zoom" style="width: 120px;"/>
 
 ## Known bugs
 
