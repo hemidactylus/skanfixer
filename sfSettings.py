@@ -7,8 +7,8 @@ settings={
         'LONG_CLICK_TIME_MS': 500 
     },
     'WINDOW_SIZE': {
-        'WIDTH': 500,
-        'HEIGHT': 500,
+        'WIDTH': 700,
+        'HEIGHT': 550,
     },
     'ZOOM': {
         'FACTOR_X': 4,
@@ -38,4 +38,5 @@ settings={
     'MAX_DIRNAME_LENGTH': 32,
     'TARGET_SUBDIRECTORY': 'sfClips',
     'VERSION': '1.0',
+    'AUTORECTANGLES': True,
 }

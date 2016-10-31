@@ -36,7 +36,8 @@ from sfUtilities import (
                             ensureDirectoryExists,
                             safeBuildFileName,
                         )
-
+#
+from sfAutorectangles import locateRectangles
 # dialog test
 from sfInputBox import sfInputBox
 
@@ -112,6 +113,10 @@ class sfMain():
         self.refreshDirButton=tk.Button(self.controlPanel,text='Refresh',command=self.funRefreshDir)
         self.refreshDirButton.bind('<Enter>',lambda e: self.mouseOnButton('refresh'))
         self.refreshDirButton.pack(side=tk.LEFT)
+        self.toggleAutoRectanglesButton=tk.Button(self.controlPanel,text='AutoR',command=self.funToggleAutoRectangles)
+        self.toggleAutoRectanglesButton.bind('<Enter>',lambda e: self.mouseOnButton('toggleautorectangles'))
+        self.toggleAutoRectanglesButton.pack(side=tk.LEFT)
+        self.refreshAutoRectangleButtonLabel()
         self.shiftButtons=[
             tk.Button(self.controlPanel,text='<<',command=lambda: self.funBrowse(delta=-1)),
             tk.Button(self.controlPanel,text='>>',command=lambda: self.funBrowse(delta=+1)),
@@ -189,8 +194,18 @@ class sfMain():
                 _msg='Choose new target dir [currently: %s]' % rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH'])
             if tag=='setoffset':
                 _msg='Manually set filename offset (currently: %i)' % self.save.offset
+            if tag=='toggleautorectangles':
+                _msg='Toggle autorectangles (currently: %s)' % ['OFF','ON'][int(settings['AUTORECTANGLES'])]
 
             self.showMessage(_msg)
+
+    def refreshAutoRectangleButtonLabel(self):
+        _txt='AutoR(%s)' % ['OFF','ON'][int(settings['AUTORECTANGLES'])]
+        self.toggleAutoRectanglesButton.configure(text=_txt)
+
+    def funToggleAutoRectangles(self):
+        settings['AUTORECTANGLES']=not settings['AUTORECTANGLES']
+        self.refreshAutoRectangleButtonLabel()
 
     def funSetOffset(self):
         '''
@@ -286,6 +301,7 @@ class sfMain():
                     'Z(oom)/[Esc]',
                     'S(ave clips)',
                     'C(lear clips)',
+                    'A(utorect toggle)',
                     '[Arrows]',
                     'H(help)',
                     'Q(uit)',
@@ -303,6 +319,9 @@ class sfMain():
                 self.createZoomOverlay(_revPos,self.picCanvas.mapper)
             else:
                 self.deleteZoomOverlay()
+            return
+        if event.keycode == 38:         # A
+            self.funToggleAutoRectangles()
             return
         if event.keycode == 39:         # S
             self.funSave()
@@ -436,6 +455,15 @@ class sfMain():
             self.refreshCanvas()
             #
             self.clearRectangles()
+            if settings['AUTORECTANGLES']:
+                # auto rectangles
+                rectaList=locateRectangles(self.image.loadedImage)
+                for qRecta in rectaList:
+                    newRe=sfRectangle(qRecta[0].shift(1,1),qRecta[1],canvasMap=self.canvasMap,color=settings['COLOR']['INERT'])
+                    for sfTag in self.canvasMap:
+                        newRe.registerCanvas(sfTag)
+                    self.rectangles.append(newRe)
+                #
             self.refreshWindowTitle()
             self.showMessage('Loaded image %s' % self.image.loadedFileName)
         except Exception as e:

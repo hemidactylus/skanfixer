@@ -11,12 +11,16 @@ from scipy import ndimage as nd
 from sfPoint import sfPoint
 from sfUtilities import popItem
 
-def locateRectangles(image,erodilateIterations=5,minRectanglePixelSize=5000,whiteThreshold=None):
+def locateRectangles(image,erodilateIterations=10,minRectanglePixelSize=None,whiteThreshold=None):
     '''
         Applies some basic morhpology to an image
         and returns a list of 2-tuples of sfPoints
         expressing the guessed no-overlap rectangles
         against a whiteish background.
+
+        whiteThreshold can be 0-256 or None. None=auto detect
+        minRectanglePixelSize = None implies 0.04 of the original size
+
     '''
     # convert to grayscale, no alpha channel
     greyimage=image.convert('L')
@@ -29,11 +33,16 @@ def locateRectangles(image,erodilateIterations=5,minRectanglePixelSize=5000,whit
     #
     imdata=imdata_orig<whiteThreshold
     # try some erosion/dilation to refine clusters
-    eroded=nd.binary_erosion(imdata,iterations=erodilateIterations)
+    eroded=nd.binary_erosion(imdata,iterations=erodilateIterations+10) # TEMP
+
+    # back to an image
+    resimage=Image.fromarray(np.uint8(eroded.astype(int)*255))
+    # resimage.save('b.jpg','jpeg')
+
     dilated=nd.binary_dilation(eroded,iterations=erodilateIterations)
     # back to an image
     resimage=Image.fromarray(np.uint8(dilated.astype(int)*255))
-    # resimage.save('b.jpg','jpeg')
+    # resimage.save('c.jpg','jpeg')
 
     # try and find regions
     laberoded,labels=nd.label(dilated)
@@ -41,6 +50,8 @@ def locateRectangles(image,erodilateIterations=5,minRectanglePixelSize=5000,whit
     lineroded=laberoded.reshape(totlen)
     labelsizes=np.bincount(lineroded)
     # labelsizes contains the (index,size) of each of the non-background components. Apply a cut here if desired
+    if minRectanglePixelSize is None:
+        minRectanglePixelSize = int(0.04 * totlen)
     regions=[]
     for rlabel in range(1,labels+1):
         if labelsizes[rlabel] >= minRectanglePixelSize:
@@ -73,8 +84,42 @@ def find_background_luminance(npImage):
     '''
         Inspects the greyscale histogram to locate a meaningful threshold signaling
         background color
+
+        Once the histogram is known, it is multiplied by a damping-factor
+        function which is:
+            zero                in    0 ... BLACKEND
+            growing ^2 to one   in  BLACKEND ... WHITEBEGIN
+            one                 in  WHITEBEGIN ... 255
+        Then the first bar that is at 95% of the max is taken as the max
+
     '''
-    return 245
+    BLACKEND=210
+    WHITEBEGIN=240
+
+    totlen=npImage.shape[0]*npImage.shape[1]
+    imdata_lin=npImage.reshape(totlen)
+    _y,_x=np.histogram(imdata_lin,range=(0,255),bins=255)
+    _x=_x[:len(_y)]
+
+    damping=np.zeros(len(_y),np.float)
+    damping[WHITEBEGIN:]=1.0
+    damping[BLACKEND:WHITEBEGIN]=np.linspace(0,1,WHITEBEGIN-BLACKEND)**2
+    _wy=_y*damping
+
+    # we get as bgcolor the first grey (from black to white) which
+    # has a histogram bar >= 1% of the total number of pixels.
+    absThreshold=int(0.01*np.max(_wy))
+    if any(_wy>absThreshold):
+        _maxind=np.argmax(_wy>absThreshold)
+    else:
+        # If greys are so evenly distributed that the above fails,
+        # return the absolute maximum within the damped array
+        _maxind=np.argmax(_wy)
+    if _maxind>4:
+        _maxind-=4
+    else:
+        _maxind=0
+    return int(_x[_maxind])
 
 def merge_rectangles(srcRegions):
     '''
