@@ -69,10 +69,4 @@ None at the moment; please let me know if you find any.
 
 ## To do
 
-* A proper configure-settings dialog
-
-* Automatic suggested rectangles upon opening a picture
-
-* Labels should be better placed (i.e. smarter positioning when editing)
-
-* Checkerboard background to mark end of loaded image on edges
+See `TODO` file in this repository.

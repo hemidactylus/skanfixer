@@ -1,5 +1,9 @@
-TO DO, later releases
+TO DO for skanfixer
+
     Label decoration visible only when rectangle hovered-over
+
     Better placed label (centre on cursor)
+
     A checkerboard background when the zoom overlay image does not cover all of the zoom canvas (to plan well)
-    Configuration screen
+
+    Configuration screen for all settings
