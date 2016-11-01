@@ -195,16 +195,16 @@ class sfMain():
             if tag=='setoffset':
                 _msg='Manually set filename offset (currently: %i)' % self.save.offset
             if tag=='toggleautorectangles':
-                _msg='Toggle autorectangles (currently: %s)' % ['OFF','ON'][int(settings['AUTORECTANGLES'])]
+                _msg='Toggle autorectangles (currently: %s)' % ['OFF','ON'][int(settings['AUTORECTANGLES']['ACTIVE'])]
 
             self.showMessage(_msg)
 
     def refreshAutoRectangleButtonLabel(self):
-        _txt='AutoR(%s)' % ['OFF','ON'][int(settings['AUTORECTANGLES'])]
+        _txt='AutoR(%s)' % ['OFF','ON'][int(settings['AUTORECTANGLES']['ACTIVE'])]
         self.toggleAutoRectanglesButton.configure(text=_txt)
 
     def funToggleAutoRectangles(self):
-        settings['AUTORECTANGLES']=not settings['AUTORECTANGLES']
+        settings['AUTORECTANGLES']['ACTIVE']=not settings['AUTORECTANGLES']['ACTIVE']
         self.refreshAutoRectangleButtonLabel()
 
     def funSetOffset(self):
@@ -455,9 +455,16 @@ class sfMain():
             self.refreshCanvas()
             #
             self.clearRectangles()
-            if settings['AUTORECTANGLES']:
+            if settings['AUTORECTANGLES']['ACTIVE']:
                 # auto rectangles
-                rectaList=locateRectangles(self.image.loadedImage)
+                rectaList=locateRectangles(
+                    self.image.loadedImage,
+                    erosionIterations=settings['AUTORECTANGLES']['EROSIONITERATIONS'],
+                    dilationIterations=settings['AUTORECTANGLES']['DILATIONITERATIONS'],
+                    minRectanglePixelFraction=settings['AUTORECTANGLES']['MINREGIONSIZE'],
+                    whiteThreshold=settings['AUTORECTANGLES']['WHITETHRESHOLD'],
+                    shrinkFactor=settings['AUTORECTANGLES']['SHRINKFACTOR'],
+                )
                 for qRecta in rectaList:
                     newRe=sfRectangle(qRecta[0].shift(1,1),qRecta[1],canvasMap=self.canvasMap,color=settings['COLOR']['INERT'])
                     for sfTag in self.canvasMap:

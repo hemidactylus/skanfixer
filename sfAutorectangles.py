@@ -11,7 +11,9 @@ from scipy import ndimage as nd
 from sfPoint import sfPoint
 from sfUtilities import popItem
 
-def locateRectangles(image,erodilateIterations=10,minRectanglePixelSize=None,whiteThreshold=None):
+def locateRectangles(image,erosionIterations=20,dilationIterations=10,
+        minRectanglePixelFraction=None,whiteThreshold=None,
+        shrinkFactor=1):
     '''
         Applies some basic morhpology to an image
         and returns a list of 2-tuples of sfPoints
@@ -21,11 +23,20 @@ def locateRectangles(image,erodilateIterations=10,minRectanglePixelSize=None,whi
         whiteThreshold can be 0-256 or None. None=auto detect
         minRectanglePixelSize = None implies 0.04 of the original size
 
+        shrinkFactor > 1 means that sf^2 pixels are made into a single one,
+        for a sf^2 speed improvement and a sf precision (linear) loss
+
     '''
     # convert to grayscale, no alpha channel
-    greyimage=image.convert('L')
-    # greyimage=image.resize((300,420),Image.ANTIALIAS).convert('L')
-    # greyimage.save('a.jpg','jpeg')
+    orig_greyimage=image.convert('L')
+    # apply shrinkFactor if required
+    origShape=orig_greyimage.size
+    if shrinkFactor>1:
+        _newX=int(origShape[0]/float(shrinkFactor))
+        _newY=int(origShape[1]/float(shrinkFactor))
+        greyimage=orig_greyimage.resize((_newX,_newY),Image.ANTIALIAS)
+    else:
+        greyimage=orig_greyimage
     imdata_orig=np.asarray(greyimage)
     # if required, determine automatically the white-cut threshold
     if whiteThreshold is None:
@@ -33,16 +44,14 @@ def locateRectangles(image,erodilateIterations=10,minRectanglePixelSize=None,whi
     #
     imdata=imdata_orig<whiteThreshold
     # try some erosion/dilation to refine clusters
-    eroded=nd.binary_erosion(imdata,iterations=erodilateIterations+10) # TEMP
+    eroded=nd.binary_erosion(imdata,iterations=erosionIterations) # TEMP
 
     # back to an image
     resimage=Image.fromarray(np.uint8(eroded.astype(int)*255))
-    # resimage.save('b.jpg','jpeg')
 
-    dilated=nd.binary_dilation(eroded,iterations=erodilateIterations)
+    dilated=nd.binary_dilation(eroded,iterations=dilationIterations)
     # back to an image
     resimage=Image.fromarray(np.uint8(dilated.astype(int)*255))
-    # resimage.save('c.jpg','jpeg')
 
     # try and find regions
     laberoded,labels=nd.label(dilated)
@@ -50,8 +59,9 @@ def locateRectangles(image,erodilateIterations=10,minRectanglePixelSize=None,whi
     lineroded=laberoded.reshape(totlen)
     labelsizes=np.bincount(lineroded)
     # labelsizes contains the (index,size) of each of the non-background components. Apply a cut here if desired
-    if minRectanglePixelSize is None:
-        minRectanglePixelSize = int(0.04 * totlen)
+    if minRectanglePixelFraction is None:
+        minRectanglePixelFraction = 0.04
+    minRectanglePixelSize=int(minRectanglePixelFraction * totlen)
     regions=[]
     for rlabel in range(1,labels+1):
         if labelsizes[rlabel] >= minRectanglePixelSize:
@@ -78,7 +88,21 @@ def locateRectangles(image,erodilateIterations=10,minRectanglePixelSize=None,whi
             break
         startRegions=mergedRegions
 
-    return mergedRegions
+    if shrinkFactor>1:
+        # re-correct for the actual rectangle size
+        # _newX=int(orig_greyimage.shape[0]/float(shrinkFactor))
+        # _newY=int(orig_greyimage.shape[1]/float(shrinkFactor))
+        finalRegions=[]
+        limvalX=(0,origShape[0])
+        limvalY=(0,origShape[1])
+        shft=((-0.5,-0.5),(0.5,0.5))
+        for qRe in mergedRegions:
+            nRe=tuple(sp.shift(*sh).rescale(shrinkFactor,shrinkFactor,limvalX,limvalY) for sp,sh in zip(qRe,shft))
+            finalRegions.append(nRe)
+    else:
+        finalRegions=mergedRegions
+
+    return finalRegions
 
 def find_background_luminance(npImage):
     '''

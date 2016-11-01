@@ -38,5 +38,12 @@ settings={
     'MAX_DIRNAME_LENGTH': 32,
     'TARGET_SUBDIRECTORY': 'sfClips',
     'VERSION': '1.0',
-    'AUTORECTANGLES': True,
+    'AUTORECTANGLES': {             # Auto-recognition of clip rectangles
+        'ACTIVE': True,
+        'EROSIONITERATIONS': 15,
+        'DILATIONITERATIONS': 12,
+        'MINREGIONSIZE': None,      # None (auto) or a fraction <=1 of total pixels
+        'WHITETHRESHOLD': None,     # None (auto) or a 0-256 greyscale white threshold
+        'SHRINKFACTOR': 8,          # Shrink factor: high=fast but not too accurate
+    },
 }

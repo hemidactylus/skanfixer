@@ -60,6 +60,30 @@ class sfPoint():
         '''
         return sfPoint(self.x+deltaX,self.y+deltaY)
 
+    def rescale(self,factorX,factorY,limitValuesX=(None,None),limitValuesY=(None,None)):
+        '''
+            Returns a new sfPoint with the coordinates expanded by the given
+            factors, with optional limiting upper value (if not None).
+
+            For each dimension, the tuple is (minVal,maxVal). Boundaries are allowed.
+
+        '''
+        _x=self.x*factorX
+        _y=self.y*factorY
+        if limitValuesX[0] is not None:
+            if _x < limitValuesX[0]:
+                _x=limitValuesX[0]
+        if limitValuesX[1] is not None:
+            if _x > limitValuesX[1]:
+                _x=limitValuesX[1]
+        if limitValuesY[0] is not None:
+            if _y < limitValuesY[0]:
+                _y=limitValuesY[0]
+        if limitValuesY[1] is not None:
+            if _y > limitValuesY[1]:
+                _y=limitValuesY[1]
+        return sfPoint(_x,_y)
+
     def __getitem__(self,idx):
         if idx=='x':
             return self.x
