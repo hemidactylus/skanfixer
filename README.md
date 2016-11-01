@@ -16,6 +16,9 @@ skanfixer lets you browse all pictures in a given folder, define a number of cli
 optionally assign a rotation angle and a label to them, and save the contents of each rectangle as a separate image
 into a target directory.
 
+Starting in version 1.0, the loaded image is analysed and a set of clip rectangles is suggested. This procedure,
+based on erosion/dilation techniques, can be turned off and configured in the settings.
+
 ## Installation and requirements
 
 To install: clone this repo, make sure you have Python 2.7+ and install the following package:

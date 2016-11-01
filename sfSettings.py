@@ -37,7 +37,7 @@ settings={
     'DEBUG_BUTTON': False,
     'MAX_DIRNAME_LENGTH': 32,
     'TARGET_SUBDIRECTORY': 'sfClips',
-    'VERSION': '1.0',
+    'VERSION': '1.1',
     'AUTORECTANGLES': {             # Auto-recognition of clip rectangles
         'ACTIVE': True,
         'EROSIONITERATIONS': 15,
