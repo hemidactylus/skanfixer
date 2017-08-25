@@ -474,6 +474,7 @@ class sfMain():
             self.refreshWindowTitle()
             self.showMessage('Loaded image %s' % self.image.loadedFileName)
         except Exception as e:
+            print e
             self.showMessage('Error while loading image "%s"' % self.image.imageList[nIndex])
 
     def cleanMainImage(self):
