@@ -422,9 +422,9 @@ class sfMain():
                 # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
                 clippedImage=clippedImage.transpose(qRecta.rotateTransposeParameter())
             if qRecta.label:
-                imageTitle='%003i_%s' % (self.save.offset,qRecta.label)
+                imageTitle='%004i_%s' % (self.save.offset,qRecta.label)
             else:
-                imageTitle='%003i' % (self.save.offset)
+                imageTitle='%004i' % (self.save.offset)
             self.save.offset+=1
             savedClips+=1
             imageName=safeBuildFileName(self.save.targetDirectory,imageTitle,'jpg')

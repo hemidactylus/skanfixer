@@ -11,10 +11,10 @@ settings={
         'HEIGHT': 550,
     },
     'ZOOM': {
-        'FACTOR_X': 4,
-        'FACTOR_Y': 4,
-        'IMAGE_WIDTH': 60,
-        'IMAGE_HEIGHT': 60,
+        'FACTOR_X': 1,
+        'FACTOR_Y': 1,
+        'IMAGE_WIDTH': 250,
+        'IMAGE_HEIGHT': 250,
     },
     'COLOR': {
         'EDITING': 'red',
