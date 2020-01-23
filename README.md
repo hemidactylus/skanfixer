@@ -21,13 +21,7 @@ based on erosion/dilation techniques, can be turned off and configured in the se
 
 ## Installation and requirements
 
-To install: clone this repo, make sure you have Python 2.7+ and install the following packages (see `requirements.txt` file):
-
-```
-    numpy==1.11.2
-    Pillow==2.6.1
-    scipy==0.18.1
-```
+To install: clone this repo, make sure you have Python3 and install the packages in the `requirements.txt`
 
 ## Usage
 

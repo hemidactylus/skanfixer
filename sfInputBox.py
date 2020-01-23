@@ -1,7 +1,7 @@
-import tkSimpleDialog
-import Tkinter as tk
+import tkinter as tk
+import tkinter.simpledialog as simpledialog
 
-class sfInputBox(tkSimpleDialog.Dialog):
+class sfInputBox(simpledialog.Dialog):
 
     def __init__(self,*pargs,**kwargs):
         if 'prevValue' in kwargs:
@@ -9,7 +9,7 @@ class sfInputBox(tkSimpleDialog.Dialog):
             del kwargs['prevValue']
         else:
             self.prevValue=None
-        tkSimpleDialog.Dialog.__init__(self,*pargs,**kwargs)
+        simpledialog.Dialog.__init__(self,*pargs,**kwargs)
 
     def body(self, master):
 

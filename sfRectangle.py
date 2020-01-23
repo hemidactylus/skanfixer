@@ -4,7 +4,7 @@
     to the ones for the canvas.
 '''
 
-import Tkinter as tk
+import tkinter as tk
 from PIL import Image
 
 from sfPoint import sfPoint
@@ -252,7 +252,7 @@ class sfRectangle():
                                             )
         self.drawingIDs[canvasTag]=drawingID
         # handle decorations attached to this rectangle
-        for dk,dv in self.decorations.iteritems():
+        for dk,dv in self.decorations.items():
             dv['drawingIDs'][canvasTag]=self.drawDecoration(targetCanvas,dv['type'],dv['index'])
 
     def drawDecoration(self,tCanvas,dType,dIndex):
@@ -282,7 +282,10 @@ class sfRectangle():
             flatDimInd=ST_IND_SEQ[dIndex]    # index of the dim common to the two points
             otherFlatDimInd=(2+flatDimInd)%4 # same orientation as the above, the other side (used for displacing)
             flatDimName='xy'[flatDimInd%2]   # either 'x' or 'y', associated to above
-            varDimInd=map(lambda ind: ind+(flatDimInd+1)%2,(0,2))
+            varDimInd=[
+                ind+(flatDimInd+1)%2
+                for ind in (0,2)
+            ]
                                              # this becomes 0,2 or 1,3, opposite to the flatDim
             varDimName='yx'[flatDimInd%2]    # either 'x' or 'y', associated both values above
             # building of the segment extremes

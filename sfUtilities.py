@@ -58,7 +58,7 @@ def findRescaleFactor(imgSize,allowedSize,allowZoom=True):
     if not allowZoom:
         if mFactor<1:
             mFactor=1
-    print 'mFactor=%.3f' % mFactor
+    print('mFactor=%.3f' % mFactor)
     return mFactor
 
 fileNameAllowedChars='qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM'+\

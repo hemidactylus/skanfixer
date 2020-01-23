@@ -11,15 +11,14 @@ emEDITSIDE=2
 emLABELING=3
 
 # standard imports
-import Tkinter as tk
-import tkFileDialog
+import tkinter as tk
+import tkinter.filedialog as filedialog
+import tkinter.font as tkfont
 from PIL import Image, ImageTk
 import os
 import sys
 import math
 from time import time
-
-import tkFont
 
 # skanfixer imports
 from sfPoint import sfPoint
@@ -100,7 +99,7 @@ class sfMain():
         self.save=sfSaveStatus()
 
         if settings['DEBUG']:
-            print 'Init.'
+            print('Init.')
 
         # Window layout
         self.master=master
@@ -223,11 +222,11 @@ class sfMain():
         '''
             allows opening a directory to work on the contained image files
         '''
-        newDir = tkFileDialog.askdirectory(parent=self.master, title='Open directory')
+        newDir = filedialog.askdirectory(parent=self.master, title='Open directory')
         # it seems that upon the user hitting 'cancel' an empty tuple is returned
         if isinstance(newDir,str) and newDir is not None and newDir!='':
             if settings['DEBUG']:
-                print 'NEWDIR -> %s' % newDir
+                print('NEWDIR -> %s' % newDir)
             self.refreshImageList(newDir)
             self.showMessage('Chosen dir %s' % rightClipText(newDir,settings['MAX_DIRNAME_LENGTH']))
 
@@ -235,11 +234,11 @@ class sfMain():
         '''
             allows changing the target directory
         '''
-        newTargetDir = tkFileDialog.askdirectory(parent=self.master, title='Choose target directory')
+        newTargetDir = filedialog.askdirectory(parent=self.master, title='Choose target directory')
         # it seems that upon the user hitting 'cancel' an empty tuple is returned
         if isinstance(newTargetDir,str) and newTargetDir is not None and newTargetDir!='':
             if settings['DEBUG']:
-                print 'NEWTARGETDIR -> %s' % newTargetDir
+                print('NEWTARGETDIR -> %s' % newTargetDir)
             self.save.targetDirectory=newTargetDir
             self.showMessage('New target dir %s' % rightClipText(newTargetDir,settings['MAX_DIRNAME_LENGTH']))
 
@@ -265,11 +264,15 @@ class sfMain():
         self.save.targetDirectory=os.path.join(workdir,settings['TARGET_SUBDIRECTORY'])
         self.save.offset=1
         if settings['DEBUG']:
-            print self.image.imageList
+            print(self.image.imageList)
         if self.image.imageList:
             if prevImageName in self.image.imageList:
                 pairList=zip(self.image.imageList,range(len(self.image.imageList)))
-                imgIndex=filter(lambda p: p[0]==prevImageName,pairList)[0][1]
+                imgIndex=[
+                    p
+                    for p in pairList
+                    if p[0]==prevImageName
+                ][0][1]
                 self.loadImage(imgIndex)
             else:
                 self.loadImage(0)
@@ -308,7 +311,7 @@ class sfMain():
                  ]
 
         if settings['DEBUG']:
-            print 'KP %s' % event.keycode
+            print('KP %s' % event.keycode)
         if event.keycode == 9:          # <Esc>
             self.deleteZoomOverlay()
             return
@@ -356,7 +359,7 @@ class sfMain():
             if self.edit.status==emINERT and self.edit.hoverRectangle is not None:
                 self.showMessage('Type the rectangle label and press Enter')
                 # create a disposable text box
-                labelFont=tkFont.Font(
+                labelFont=tkfont.Font(
                                         family=settings['LABELTEXT']['FONTFAMILY'],
                                         size=settings['LABELTEXT']['FONTSIZE'],
                                         weight=settings['LABELTEXT']['FONTWEIGHT'],
@@ -416,7 +419,7 @@ class sfMain():
         savedClips=0
         for qInd,qRecta in enumerate(self.rectangles):
             if settings['DEBUG']:
-                print '- Saving %i/%i ...' % (qInd+1,len(self.rectangles)),
+                print('- Saving %i/%i ...' % (qInd+1,len(self.rectangles)))
             clippedImage=self.image.loadedImage.crop(qRecta.sortedTuple(integer=True))
             if qRecta.rotation != 0:
                 # 0=bottom, 1=right, 2=top, 3=left: marks the side which will be doubly-marked
@@ -431,10 +434,10 @@ class sfMain():
             ensureDirectoryExists(self.save.targetDirectory)
             clippedImage.save(imageName,'jpeg')
             if settings['DEBUG']:
-                print 'Dest=%s' % (imageName)
+                print('Dest=%s' % (imageName))
         self.showMessage('%i images saved in %s.' % (savedClips, rightClipText(self.save.targetDirectory,settings['MAX_DIRNAME_LENGTH'])))
         if settings['DEBUG']:
-            print 'Done.'
+            print('Done.')
 
     def funBrowse(self,delta):
         nImages=len(self.image.imageList)
@@ -451,7 +454,7 @@ class sfMain():
             self.image.loadedFileIndex=nIndex
             self.image.loadedFileName=self.image.imageList[nIndex]
             if settings['DEBUG']:
-                print self.image.imageList[nIndex]
+                print(self.image.imageList[nIndex])
             self.refreshCanvas()
             #
             self.clearRectangles()
@@ -474,7 +477,7 @@ class sfMain():
             self.refreshWindowTitle()
             self.showMessage('Loaded image %s' % self.image.loadedFileName)
         except Exception as e:
-            print e
+            print(e)
             self.showMessage('Error while loading image "%s"' % self.image.imageList[nIndex])
 
     def cleanMainImage(self):
@@ -490,20 +493,20 @@ class sfMain():
         '''
         if self.image.loadedImage is None:
             if settings['DEBUG']:
-                print 'LoadedImage was none: clean this'
+                print('LoadedImage was none: clean this')
         else:
             # find scale factor
             cvSize=(self.picCanvas.winfo_width(),self.picCanvas.winfo_height())
             scaleFactor=findRescaleFactor(self.image.loadedImage.size,cvSize)
             if settings['DEBUG']:
-                print 'sf=%f' % scaleFactor
+                print('sf=%f' % scaleFactor)
             # set affine map
             self.picCanvas.setMap(createAffineMap(scaleFactor,scaleFactor))
             # rescale pic, show it
             self.cleanMainImage()
             shownSize=tuple(max(int(ldDim / scaleFactor),1) for ldDim in self.image.loadedImage.size)
             if settings['DEBUG']:
-                print 'shownSize:', shownSize
+                print('shownSize:', shownSize)
             self.image.shownImage=self.image.loadedImage.resize(shownSize, Image.ANTIALIAS)
             # make the tour through PIL to show image and so on
             self.image.tkShownImage=ImageTk.PhotoImage(self.image.shownImage)
@@ -526,12 +529,12 @@ class sfMain():
         self.master.quit()
 
     def doButton(self):
-        print 'Rectangles'
+        print('Rectangles')
         for qInd,qRecta in enumerate(self.rectangles):
-            print '%3i -> %s' % (qInd,qRecta)
+            print('%3i -> %s' % (qInd,qRecta))
             for c in qRecta.corners():
-                print '    ', c
-            print '     C = %s' % (','.join(qRecta.boundCanvases))
+                print('    %s' % str(c))
+            print('     C = %s' % (','.join(qRecta.boundCanvases)))
 
 
     def findCloseThing(self,point,canvas):
@@ -625,7 +628,7 @@ class sfMain():
             imgCentre.shift(0.5*settings['ZOOM']['IMAGE_WIDTH'],
                 0.5*settings['ZOOM']['IMAGE_HEIGHT']),{}).sortedTuple(integer=True)
         if settings['DEBUG']:
-            print _imgClipRegion
+            print(_imgClipRegion)
         self.image.zoomImage=ImageTk.PhotoImage(self.image.loadedImage.crop(_imgClipRegion).resize((zwWidth,zwHeight),Image.NEAREST))
         self.image.drawnImageIDs[self.picZoom.sfTag]= \
             self.picZoom.create_image(0,0,anchor=tk.NW,image=self.image.zoomImage)
@@ -781,15 +784,12 @@ class sfMain():
             self.showMessage(evPoint.intLabel())
 
     def canvasConfigure(self,event,canvas):
-        print 'CONFIGURE %i,%i (%i,%i)' % (event.width,event.height,
-            canvas.winfo_width(),canvas.winfo_height())
+        print('CONFIGURE %i,%i (%i,%i)' % (event.width,event.height,
+            canvas.winfo_width(),canvas.winfo_height()))
         self.refreshCanvas()
         self.refreshRectangles()
 
 def main():
-
-    # standard imports
-    import Tkinter as tk
 
     # command line parsing
     sourcedir=None

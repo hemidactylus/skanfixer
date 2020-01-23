@@ -200,12 +200,12 @@ def determine_overlap(recta1,recta2):
                 )
 
 if __name__=='__main__':
-    print 'Testing'
+    print('Testing')
     #
     pic=Image.open('/home/stefano/temp/NotBackedUp/PicsForSkanfixer/p0035.jpg')
     _ini=time()
     for i,r in  enumerate(locateRectangles(pic)):
-        print '  ',i, r
-    print 'Done in %f' % (time()-_ini)
+        print('  ',i, r)
+    print('Done in %f' % (time()-_ini))
     #
-    print 'Done'
+    print('Done')

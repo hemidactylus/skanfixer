@@ -15,7 +15,7 @@ class sfPoint():
         return self.__str__()
 
     def intLabel(self):
-        return '%i, %i' % tuple(map(int,(self.x,self.y)))
+        return '%i, %i' % tuple(int(v) for v in (self.x,self.y))
 
     def asTuple(self):
         return tuple((self.x,self.y))
@@ -45,7 +45,7 @@ class sfPoint():
             ** All of this after applying a reverse affine map **
         '''
         _ms=mapper(self,'r')
-        _mseg=map(lambda pt: mapper(pt,'r'), segment)
+        _mseg=[mapper(sit,'r') for sit in  segment]
         # distance from self to the segment segment. Horiz or vert?
         constAxis='x' if _mseg[0]['x']==_mseg[1]['x'] else 'y'
         varAxis='y' if constAxis=='x' else 'x'

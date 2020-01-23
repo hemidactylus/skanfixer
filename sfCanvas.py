@@ -3,9 +3,9 @@
     most notably affine maps and a tag system
 '''
 
-import Tkinter
+import tkinter
 
-class sfCanvas(Tkinter.Canvas):
+class sfCanvas(tkinter.Canvas):
 
     def __init__(self, *pargs, **kwargs):
         '''
@@ -15,7 +15,7 @@ class sfCanvas(Tkinter.Canvas):
             kwargs['sfTag']='NOT_SET'
         self.sfTag=kwargs['sfTag']
         del kwargs['sfTag']
-        Tkinter.Canvas.__init__(self,*pargs,**kwargs)
+        tkinter.Canvas.__init__(self,*pargs,**kwargs)
 
     def setMap(self, coordinateMapper=None):
         '''
